@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Field Walk</title>
+<meta name="theme-color" content="#0F4377">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Field Walk">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#EDF1F5;--surface:#fff;--sunk:#E2E8EE;--ink:#13202C;--muted:#56677A;--line:#CBD5DF;
+  --navy:#0F4377;--blue:#0566B1;--sky:#3BA7DB;--gold:#F2B134;--gold-ink:#1D1606;
+  --ok:#2A7A4E;--ok-bg:#E2F2E9;--warn:#9A5F0A;--warn-bg:#FBEFD9;--bad:#B43C2C;--bad-bg:#F8E1DD;
+  --r:12px;color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0C141C;--surface:#131E29;--sunk:#0F1922;--ink:#E4ECF3;--muted:#93A5B6;--line:#26384A;
+  --navy:#1A5C9C;--blue:#4A9FE0;--sky:#5FBDE8;--gold:#F4BE52;
+  --ok:#62C48D;--ok-bg:#16301F;--warn:#E8B04E;--warn-bg:#33270F;--bad:#EE8370;--bad-bg:#3A1C17;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+[hidden]{display:none!important}
+h1,h2{margin:0}
+.bar{background:var(--navy);color:#fff;position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top)}
+.bar-in{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.mark{width:34px;height:34px;border-radius:7px;background:var(--gold);display:grid;place-items:center;flex:none}
+.bar h1{font-size:20px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;line-height:1}
+.bar .sub{font-size:12px;opacity:.8}
+.bar .act{margin-left:auto;display:flex;gap:8px}
+.bbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
+.bbtn.gold{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+main{max-width:900px;margin:0 auto;padding:16px 16px 90px;display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:14px;min-width:0}
+.card h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--blue)}
+.fine{font-size:13px;color:var(--muted)}
+.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;font-size:15px;min-height:46px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-gold{background:var(--gold);color:var(--gold-ink)}
+.btn-ghost{background:var(--sunk);border:1px solid var(--line)}
+.btn-bad{background:var(--bad-bg);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.wide{grid-column:1/-1}
+.lbl,.field label{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.inp{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:11px 12px;width:100%;min-width:0;font-size:16px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:9px 13px;border-radius:999px;cursor:pointer;font-size:15px;font-weight:700}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.check{display:flex;gap:10px;align-items:center;font-size:15px;background:var(--sunk);border-radius:9px;padding:10px 12px}
+.check input{width:22px;height:22px;accent-color:var(--blue)}
+.list{display:grid;gap:10px}
+.job{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;cursor:pointer;text-align:left;width:100%}
+.job .pic{width:64px;height:64px;border-radius:8px;background:var(--sunk);object-fit:cover;display:block}
+.job .nm{font-weight:800;overflow-wrap:anywhere}
+.job input[type=checkbox]{width:24px;height:24px;accent-color:var(--blue)}
+.pill{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.new{background:var(--warn-bg);color:var(--warn)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.empty{text-align:center;padding:30px 16px;color:var(--muted)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thumb{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);display:grid;min-width:0}
+.thumb .img{position:relative;aspect-ratio:4/3;background:var(--sunk)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .n{position:absolute;left:6px;top:6px;background:var(--navy);color:#fff;font-size:12px;font-weight:800;border-radius:5px;padding:0 6px}
+.thumb .x{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}
+.thumb .meta{padding:7px;display:grid;gap:6px}
+.thumb select,.thumb input{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px;font-size:15px;width:100%;min-width:0}
+.tip{background:var(--sunk);border-radius:10px;padding:12px 14px;font-size:14px}
+.tip ol{margin:6px 0 0;padding-left:20px}
+.foot{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:9}
+.foot .row{max-width:900px;margin:0 auto}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;z-index:50;max-width:calc(100% - 32px);box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+.saved-note{font-size:13px;color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 20h18M5 20V9l4-3v14M9 20V4h7v16M16 20v-9h3v9" fill="none" stroke="#1D1606" stroke-width="2"/></svg></span>
+  <div><h1>Field Walk</h1><div class="sub">Ahrens Contracting · site walks</div></div>
+  <div class="act"><button class="bbtn" id="backBtn" hidden>‹ All walks</button><button class="bbtn gold" id="newBtn">+ New walk</button></div>
+</div></header>
+
+<!-- LIST VIEW -->
+<main id="listView">
+  <div class="tip" id="installTip" hidden><b>Put this on the home screen:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works with no signal once it's there.</div>
+  <div class="list" id="list"></div>
+  <div class="card">
+    <h2>Send to the estimator</h2>
+    <p class="fine" style="margin:0">Check the walks to send (new and changed ones are checked for you), then tap <b>Export</b>. Save the file to Files or AirDrop it, and open the <b>Photo Estimator</b> → <b>Import from field</b>. Photos and notes stay on this iPad until you delete the walk.</p>
+    <p class="fine" style="margin:0" id="storageNote"></p>
+  </div>
+</main>
+
+<!-- EDIT VIEW -->
+<main id="editView" hidden>
+  <section class="card">
+    <h2>Job</h2>
+    <div class="fields">
+      <div class="field wide"><label for="fName">Job name</label><input class="inp" id="fName" placeholder="Old East Wing demolition"></div>
+      <div class="field"><label for="fClient">Owner / GC</label><input class="inp" id="fClient"></div>
+      <div class="field"><label for="fBid">Bid due</label><input class="inp" id="fBid" type="date"></div>
+      <div class="field wide"><label for="fAddr">Address</label><div class="row" style="flex-wrap:nowrap"><input class="inp" id="fAddr" placeholder="Street, city"><button class="btn btn-ghost" id="locBtn" type="button" style="flex:none">📍 Here</button></div><span class="fine" id="locNote"></span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Photos</h2>
+    <p class="fine" style="margin:0">Exterior from each corner, roof, basement, mechanical rooms, floor tile, pipe insulation, ceilings, X-ray rooms.</p>
+    <div class="row">
+      <label class="btn btn-primary" for="camIn" style="display:inline-flex;align-items:center">📷 Take photo</label>
+      <label class="btn btn-ghost" for="libIn" style="display:inline-flex;align-items:center">Choose from library</label>
+      <span class="fine" id="photoCount"></span>
+    </div>
+    <input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+    <input type="file" id="libIn" accept="image/*" multiple hidden>
+    <div class="thumbs" id="thumbs"></div>
+  </section>
+
+  <section class="card">
+    <h2>Building</h2>
+    <div class="field"><span class="lbl">Building type</span><div class="chips" id="cType"></div></div>
+    <div class="field"><span class="lbl">Structure</span><div class="chips" id="cStruct"></div></div>
+    <div class="fields">
+      <div class="field"><label for="fStories">Stories above grade</label><input class="inp" id="fStories" type="number" inputmode="numeric" min="1"></div>
+      <div class="field"><label for="fFp">Footprint (SF)</label><input class="inp" id="fFp" type="number" inputmode="numeric" min="0"></div>
+      <div class="field"><label for="fGsf">Total floor area (SF)</label><input class="inp" id="fGsf" type="number" inputmode="numeric" min="0"><span class="fine" id="gsfNote"></span></div>
+      <div class="field"><label for="fBsmt">Basement levels</label><input class="inp" id="fBsmt" type="number" inputmode="numeric" min="0" max="4"></div>
+      <div class="field"><label for="fEra">When built</label><select class="inp" id="fEra"><option value="unknown">Not sure</option><option value="pre1980">Before 1980</option><option value="y1980">1980 – 2000</option><option value="post2000">After 2000</option></select></div>
+      <div class="field"><label for="fLead">Lead-lined rooms (X-ray, CT)</label><input class="inp" id="fLead" type="number" inputmode="numeric" min="0" placeholder="Blank = not checked"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Scope & site</h2>
+    <div class="field"><span class="lbl">Scope</span><div class="chips" id="cScope"></div></div>
+    <div class="fields">
+      <div class="field" id="wPartial"><label for="fPartial">Share coming down (%)</label><input class="inp" id="fPartial" type="number" inputmode="numeric" min="5" max="100" step="5"></div>
+      <div class="field" id="wFound"><label for="fFound">Foundations</label><select class="inp" id="fFound"><option value="full">Remove all, backfill</option><option value="slab">Slab only, footings stay</option><option value="leave">Leave in place</option></select></div>
+      <div class="field"><label for="fMiles">Miles to landfill / recycler</label><input class="inp" id="fMiles" type="number" inputmode="numeric" min="1"></div>
+      <div class="field"><label for="fAbate">Abatement sub quote ($)</label><input class="inp" id="fAbate" type="number" inputmode="numeric" min="0" placeholder="If you have one"></div>
+    </div>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="fPw"> Prevailing wage (public money)</label>
+      <label class="check"><input type="checkbox" id="fCampus"> Next to occupied hospital / campus</label>
+      <label class="check"><input type="checkbox" id="fUrban"> Tight urban site, street closures</label>
+      <label class="check"><input type="checkbox" id="fRail"> Next to active track</label>
+    </div>
+    <div class="field"><label for="fNotes">Walk-through notes</label><textarea class="inp" id="fNotes" rows="5" placeholder="Access, utilities, tanks, what the owner said. Claude reads these with the photos."></textarea></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><span class="saved-note" id="savedNote">Saves as you go</span><button class="btn btn-bad" id="delBtn" style="margin-left:auto">Delete this walk</button></div>
+  </section>
+</main>
+
+<div class="foot" id="listFoot"><div class="row">
+  <span class="fine" id="selCount" style="flex:1"></span>
+  <button class="btn btn-gold" id="exportBtn">Export</button>
+</div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* Field Walk — offline site-walk sheet for the Ahrens Photo Estimator.
+   Data lives in IndexedDB on this device. Export writes {app:"field-walk",version:1,jobs:[...]}
+   which the estimator's "Import from field" reads. Field names match jobFromField() there. */
+const TYPES=[["hospital","Hospital / clinic"],["office","Office"],["school","School"],["industrial","Industrial / plant"],["retail","Retail"],["garage","Parking garage"],["residential","Apartments"]];
+const STRUCTS=[["unknown","Not sure"],["wood","Wood frame"],["masonry","Load-bearing masonry"],["steel","Steel frame"],["concrete","Concrete frame"],["mixed","Mixed / additions"]];
+const SCOPES=[["full","Full demolition"],["partial","Partial / one wing"],["interior","Interior gut only"]];
+const TAGS=["Exterior","Roof","Interior","Basement","Mechanical","Suspect hazmat","X-ray / lead room","Site / access"];
+const MAX_EDGE=1600, JPEG_Q=0.72;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+let toastT;function toast(m,ms=3500){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms);}
+
+/* ---------- storage (IndexedDB) ---------- */
+let dbp;
+function idb(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open("field-walk",1);r.onupgradeneeded=()=>{r.result.createObjectStore("jobs",{keyPath:"id"});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
+async function tx(mode,fn){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction("jobs",mode);const s=t.objectStore("jobs");const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});}
+const allJobs=()=>tx("readonly",s=>s.getAll());
+const putJob=j=>tx("readwrite",s=>s.put(j));
+const delJob=id=>tx("readwrite",s=>s.delete(id));
+
+/* ---------- state ---------- */
+let jobs=[]; let cur=null; let selected=new Set();
+function blankJob(){const t=Date.now();return{id:uid(),createdAt:t,updatedAt:t,exportedAt:0,name:"",client:"",address:"",lat:null,lng:null,bid:"",type:"hospital",structure:"unknown",stories:"",footprint:"",gsf:"",gsfAuto:true,basement:"",era:"unknown",leadRooms:"",scope:"full",partial:100,found:"full",miles:"",abate:"",pw:false,campus:false,urban:false,rail:false,notes:"",photos:[]};}
+
+/* ---------- list view ---------- */
+async function loadList(){
+  jobs=(await allJobs()).sort((a,b)=>b.updatedAt-a.updatedAt);
+  selected=new Set(jobs.filter(j=>j.updatedAt>(j.exportedAt||0)).map(j=>j.id));
+  renderList();
+}
+function renderList(){
+  const el=$("list");
+  if(!jobs.length){el.innerHTML=`<div class="card empty"><b>No site walks yet.</b><br>Tap <b>+ New walk</b> when you're standing at the building.</div>`;}
+  else el.innerHTML=jobs.map(j=>{
+    const changed=j.updatedAt>(j.exportedAt||0);
+    const pic=j.photos[0]?`<img class="pic" src="${j.photos[0].data}" alt="">`:`<span class="pic"></span>`;
+    return `<div class="job" data-open="${j.id}" role="button" tabindex="0">
+      ${pic}
+      <div style="min-width:0"><div class="nm">${esc(j.name||"Untitled site walk")}</div>
+      <div class="fine">${esc(j.address||"No address")} · ${j.photos.length} photo${j.photos.length===1?"":"s"} · ${new Date(j.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+      <div style="margin-top:4px">${changed?`<span class="pill new">${j.exportedAt?"Changed since export":"Not exported"}</span>`:`<span class="pill ok">Exported</span>`}</div></div>
+      <input type="checkbox" data-sel="${j.id}" ${selected.has(j.id)?"checked":""} aria-label="Include ${esc(j.name||"this walk")} in export">
+    </div>`;}).join("");
+  el.querySelectorAll("[data-sel]").forEach(c=>{c.onclick=e=>e.stopPropagation();c.onchange=()=>{c.checked?selected.add(c.dataset.sel):selected.delete(c.dataset.sel);updateSel();};});
+  el.querySelectorAll("[data-open]").forEach(r=>{const go=()=>openJob(r.dataset.open);r.onclick=go;r.onkeydown=e=>{if(e.key==="Enter")go();};});
+  updateSel();
+}
+function updateSel(){
+  const k=selected.size; $("selCount").textContent=jobs.length?`${k} of ${jobs.length} walk${jobs.length===1?"":"s"} selected`:"";
+  $("exportBtn").disabled=!k;
+}
+function showList(){cur=null;$("editView").hidden=true;$("listView").hidden=false;$("listFoot").hidden=false;$("backBtn").hidden=true;$("newBtn").hidden=false;window.scrollTo(0,0);loadList();}
+
+/* ---------- edit view ---------- */
+const BIND=[["fName","name"],["fClient","client"],["fAddr","address"],["fBid","bid"],["fStories","stories"],["fFp","footprint"],["fGsf","gsf"],["fBsmt","basement"],["fEra","era"],["fLead","leadRooms"],["fPartial","partial"],["fFound","found"],["fMiles","miles"],["fAbate","abate"],["fNotes","notes"]];
+const CHK=[["fPw","pw"],["fCampus","campus"],["fUrban","urban"],["fRail","rail"]];
+async function openJob(id){
+  cur=id?jobs.find(j=>j.id===id):blankJob();
+  if(!id){await putJob(cur);}
+  $("listView").hidden=true;$("listFoot").hidden=true;$("editView").hidden=false;$("backBtn").hidden=false;$("newBtn").hidden=true;
+  renderEdit();renderPhotos();window.scrollTo(0,0);
+  if(!id) $("fName").focus();
+}
+function chips(el,list,key){
+  $(el).innerHTML=list.map(([v,l])=>`<button type="button" class="chip" data-v="${v}" aria-pressed="${cur[key]===v}">${l}</button>`).join("");
+  $(el).querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cur[key]=b.dataset.v;renderEdit();save();});
+}
+function renderEdit(){
+  chips("cType",TYPES,"type");chips("cStruct",STRUCTS,"structure");chips("cScope",SCOPES,"scope");
+  BIND.forEach(([id,k])=>{const e=$(id);if(document.activeElement!==e)e.value=cur[k]??"";});
+  CHK.forEach(([id,k])=>$(id).checked=!!cur[k]);
+  $("wPartial").hidden=cur.scope!=="partial";$("wFound").hidden=cur.scope==="interior";
+  $("gsfNote").textContent=cur.gsfAuto?"Footprint × stories. Type over it if different.":"Entered by hand.";
+  $("locNote").textContent=cur.lat!=null?`GPS ${(+cur.lat).toFixed(5)}, ${(+cur.lng).toFixed(5)}`:"";
+}
+BIND.forEach(([id,k])=>$(id).addEventListener("input",e=>{
+  cur[k]=e.target.value;
+  if(k==="gsf")cur.gsfAuto=e.target.value==="";
+  if((k==="footprint"||k==="stories")&&cur.gsfAuto){const g=(+cur.footprint||0)*(+cur.stories||0);cur.gsf=g?String(g):"";$("fGsf").value=cur.gsf;}
+  $("gsfNote").textContent=cur.gsfAuto?"Footprint × stories. Type over it if different.":"Entered by hand.";
+  save();
+}));
+CHK.forEach(([id,k])=>$(id).addEventListener("change",e=>{cur[k]=e.target.checked;save();}));
+let saveT;
+function save(){
+  if(!cur)return; cur.updatedAt=Date.now(); $("savedNote").textContent="Saving…";
+  clearTimeout(saveT); const j=cur;
+  saveT=setTimeout(async()=>{try{await putJob(j);$("savedNote").textContent="Saved on this iPad";}catch(e){$("savedNote").textContent="Couldn't save — storage may be full";toast("Couldn't save. The iPad may be out of storage.");}},300);
+}
+$("locBtn").onclick=()=>{
+  if(!navigator.geolocation){toast("Location isn't available here.");return;}
+  $("locNote").textContent="Finding you…";
+  navigator.geolocation.getCurrentPosition(p=>{cur.lat=p.coords.latitude;cur.lng=p.coords.longitude;renderEdit();save();toast("Location saved with this walk");},
+    ()=>{$("locNote").textContent="";toast("Couldn't get location. Check Settings → Safari → Location.");},{enableHighAccuracy:true,timeout:15000});
+};
+
+/* ---------- photos ---------- */
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{const s=Math.min(1,MAX_EDGE/Math.max(img.naturalWidth,img.naturalHeight));const w=Math.round(img.naturalWidth*s),h=Math.round(img.naturalHeight*s);
+      const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL("image/jpeg",JPEG_Q));};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
+    img.src=url;
+  });
+}
+async function addFiles(list){
+  let added=0;
+  for(const f of list){ if(!f.type.startsWith("image/")&&!/\.(heic|heif|jpe?g|png)$/i.test(f.name)) continue;
+    try{const data=await shrink(f);cur.photos.push({id:uid(),data,tag:cur.photos.length?"Interior":"Exterior",note:"",takenAt:Date.now()});added++;}catch(e){}
+  }
+  if(added){renderPhotos();save();} else toast("That photo couldn't be read.");
+}
+function renderPhotos(){
+  $("photoCount").textContent=cur.photos.length+" photo"+(cur.photos.length===1?"":"s");
+  $("thumbs").innerHTML=cur.photos.map((p,i)=>`<div class="thumb"><div class="img"><img src="${p.data}" alt="Site photo ${i+1}"><span class="n">${i+1}</span><button class="x" data-del="${p.id}" aria-label="Remove photo ${i+1}">×</button></div>
+    <div class="meta"><select data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
+    <input data-note="${p.id}" value="${esc(p.note)}" placeholder="Note (optional)" aria-label="Note for photo ${i+1}"></div></div>`).join("");
+  const find=id=>cur.photos.find(x=>x.id===id);
+  $("thumbs").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(!confirm("Remove this photo?"))return;cur.photos=cur.photos.filter(x=>x.id!==b.dataset.del);renderPhotos();save();});
+  $("thumbs").querySelectorAll("[data-tag]").forEach(s=>s.onchange=()=>{find(s.dataset.tag).tag=s.value;save();});
+  $("thumbs").querySelectorAll("[data-note]").forEach(s=>s.oninput=()=>{find(s.dataset.note).note=s.value;save();});
+}
+$("camIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
+$("libIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
+
+$("delBtn").onclick=async()=>{
+  if(!confirm(`Delete "${cur.name||"this site walk"}" and its ${cur.photos.length} photos from this iPad? This can't be undone.`))return;
+  clearTimeout(saveT); await delJob(cur.id); toast("Walk deleted"); showList();
+};
+$("newBtn").onclick=()=>openJob(null);
+$("backBtn").onclick=async()=>{clearTimeout(saveT);if(cur)await putJob(cur);showList();};
+
+/* ---------- export ---------- */
+function toExport(j){const {exportedAt,...rest}=j;return{...rest,structure:j.structure==="unknown"?"":j.structure,photos:j.photos.map(p=>({data:p.data,tag:p.tag,note:p.note,takenAt:p.takenAt}))};}
+$("exportBtn").onclick=async()=>{
+  const pick=jobs.filter(j=>selected.has(j.id)); if(!pick.length)return;
+  const payload={app:"field-walk",version:1,exportedAt:new Date().toISOString(),jobs:pick.map(toExport)};
+  const d=new Date(); const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
+  const name=`field-walk-${stamp}.json`;
+  const blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
+  const file=new File([blob],name,{type:"application/json"});
+  let done=false;
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});done=true;}
+  }catch(e){ if(e&&e.name==="AbortError"){toast("Export cancelled");return;} }
+  if(!done){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);done=true;}
+  const t=Date.now(); for(const j of pick){j.exportedAt=t;await putJob(j);}
+  toast(`Exported ${pick.length} walk${pick.length>1?"s":""} (${(blob.size/1048576).toFixed(1)} MB). Open it in the Photo Estimator.`,5000);
+  loadList();
+};
+
+/* ---------- boot ---------- */
+(async()=>{
+  const standalone=window.navigator.standalone||matchMedia("(display-mode: standalone)").matches;
+  $("installTip").hidden=!!standalone||!/iPad|iPhone|Macintosh/.test(navigator.userAgent);
+  try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist();
+    if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e.usage!=null)$("storageNote").textContent=`Using ${(e.usage/1048576).toFixed(0)} MB on this iPad.`;}}catch(e){}
+  try{await loadList();}catch(e){$("list").innerHTML=`<div class="card empty">Storage isn't available. If this is a Private tab, open the page in a normal Safari tab.</div>`;}
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
