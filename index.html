@@ -117,6 +117,7 @@ textarea.inp{min-height:130px;resize:vertical}
 .meter i{display:block;height:100%;background:var(--ok)}
 .bidtag{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
 .thumb .ck{font-size:12px;color:var(--blue);font-weight:700}
+.thumb .where{font-size:12px;color:var(--muted)}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .dock .row{max-width:900px;margin:0 auto}
 .dock .btn{flex:1}
@@ -342,12 +343,32 @@ function shrink(file){return new Promise((res,rej)=>{
 let pendingCk=null;
 const clDone=j=>(j.checklist||[]).filter(c=>c.status||c.answer||(c.value!==""&&c.value!=null)).length;
 function nextTag(){const have=new Set(photos.map(p=>p.tag));return SHOTS.find(s=>!have.has(s))||"Interior";}
-async function addFiles(files){
+/* ---------- which way the camera faced, and where you stood (works with no signal: compass + GPS) ---------- */
+let lastHeading=null, compassOn=false, lastPos=null;
+const DIRS=["N","NE","E","SE","S","SW","W","NW"];
+const dirOf=h=>h==null?"":DIRS[Math.round(((h%360)+360)%360/45)%8];
+function onOrient(e){let h=e.webkitCompassHeading;if(h==null&&e.absolute&&e.alpha!=null)h=360-e.alpha;if(h!=null&&isFinite(h))lastHeading=Math.round((h+360)%360);}
+function startCompass(){
+  if(compassOn) return;
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined"&&typeof DeviceOrientationEvent.requestPermission==="function"){
+      DeviceOrientationEvent.requestPermission().then(st=>{if(st==="granted"){addEventListener("deviceorientation",onOrient);compassOn=true;}}).catch(()=>{});
+    } else if(typeof DeviceOrientationEvent!=="undefined"){ addEventListener("deviceorientationabsolute",onOrient); addEventListener("deviceorientation",onOrient); compassOn=true; }
+  }catch(e){}
+}
+function warmGps(){
+  if(!navigator.geolocation) return;
+  try{navigator.geolocation.getCurrentPosition(p=>{lastPos={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy),t:Date.now()};},()=>{},{enableHighAccuracy:true,maximumAge:60000,timeout:15000});}catch(e){}
+}
+function beforeShot(){startCompass();warmGps();}
+async function addFiles(files,fromCam){
   if(!files||!files.length) return;
   $("photoBusy").hidden=false;let added=0;
   for(const f of files){
     if(!f.type.startsWith("image/")&&!/\.(heic|heif|jpe?g|png)$/i.test(f.name)) continue;
-    try{const {blob,w,h}=await shrink(f);const ck=pendingCk&&(J.checklist||[]).find(c=>c.id===pendingCk);const p={id:uid(),jobId:J.id,blob,w,h,tag:ck?(TAGS.includes(ck.shot)?ck.shot:"Interior"):nextTag(),note:"",takenAt:Date.now(),checklistId:ck?ck.id:null};await putPhoto(p);photos.push(p);added++;}
+    try{const {blob,w,h}=await shrink(f);const ck=pendingCk&&(J.checklist||[]).find(c=>c.id===pendingCk);const fresh=lastPos&&Date.now()-lastPos.t<120000?lastPos:null;
+      const p={id:uid(),jobId:J.id,blob,w,h,tag:ck?(TAGS.includes(ck.shot)?ck.shot:"Interior"):nextTag(),tagBy:ck?"item":"auto",note:"",takenAt:Date.now(),checklistId:ck?ck.id:null,heading:fromCam?lastHeading:null,lat:fromCam&&fresh?fresh.lat:null,lng:fromCam&&fresh?fresh.lng:null,acc:fromCam&&fresh?fresh.acc:null};await putPhoto(p);photos.push(p);added++;
+      if(fromCam&&!fresh) warmGps();}
     catch(e){toast("One photo couldn't be read. Try taking it again.");}
   }
   $("photoBusy").hidden=true; pendingCk=null;
@@ -360,18 +381,18 @@ function renderPhotos(){
   $("shots").innerHTML=SHOTS.map(s=>`<span class="shot ${have.has(s)?"got":""}">${have.has(s)?"✓ ":""}${s}</span>`).join("")+(J.type==="hospital"?`<span class="shot ${have.has("X-ray / lead room")?"got":""}">${have.has("X-ray / lead room")?"✓ ":""}X-ray / lead room</span>`:"");
   $("thumbs").innerHTML=photos.map((p,i)=>{const u=URL.createObjectURL(p.blob);photoUrls.push(u);
     return `<div class="thumb"><div class="img"><img src="${u}" alt="Photo ${i+1}"><span class="n">${i+1}</span><button class="x" data-del="${p.id}" aria-label="Remove photo ${i+1}">×</button></div>
-    <div class="meta">${p.checklistId&&(J.checklist||[]).find(c=>c.id===p.checklistId)?`<div class="ck">For: ${esc((J.checklist.find(c=>c.id===p.checklistId)||{}).q)}</div>`:""}<select id="t_${p.id}" data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
+    <div class="meta">${p.checklistId&&(J.checklist||[]).find(c=>c.id===p.checklistId)?`<div class="ck">For: ${esc((J.checklist.find(c=>c.id===p.checklistId)||{}).q)}</div>`:""}${p.heading!=null||p.lat!=null?`<div class="where">${p.heading!=null?"Facing "+dirOf(p.heading)+" ("+p.heading+"°)":""}${p.heading!=null&&p.lat!=null?" · ":""}${p.lat!=null?"location saved":""}</div>`:""}<select id="t_${p.id}" data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
     <input id="n_${p.id}" data-note="${p.id}" value="${esc(p.note)}" placeholder="Note" aria-label="Note for photo ${i+1}"></div></div>`;}).join("");
   $("thumbs").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
     if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="?";b.setAttribute("aria-label","Tap again to remove");setTimeout(()=>{if(b.isConnected){b.dataset.armed="";b.textContent="×";}},2500);return;}
     await delPhoto(b.dataset.del);photos=photos.filter(p=>p.id!==b.dataset.del);await saveNow();renderPhotos();});
-  $("thumbs").querySelectorAll("[data-tag]").forEach(s=>s.onchange=async()=>{const p=photos.find(x=>x.id===s.dataset.tag);p.tag=s.value;await putPhoto(p);await saveNow();renderPhotos();});
+  $("thumbs").querySelectorAll("[data-tag]").forEach(s=>s.onchange=async()=>{const p=photos.find(x=>x.id===s.dataset.tag);p.tag=s.value;p.tagBy="manual";await putPhoto(p);await saveNow();renderPhotos();});
   $("thumbs").querySelectorAll("[data-note]").forEach(s=>s.oninput=()=>{const p=photos.find(x=>x.id===s.dataset.note);p.note=s.value;clearTimeout(p._t);p._t=setTimeout(async()=>{const {_t,...rest}=p;await putPhoto(rest);await saveNow();},400);});
 }
-$("camIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
+$("camIn").onchange=e=>{addFiles([...e.target.files],true);e.target.value="";};
 $("libIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
-$("dockCam").onclick=()=>{pendingCk=null;$("camIn").click();};
-document.querySelector('label[for="camIn"]').addEventListener("click",()=>{pendingCk=null;});
+$("dockCam").onclick=()=>{pendingCk=null;beforeShot();$("camIn").click();};
+document.querySelector('label[for="camIn"]').addEventListener("click",()=>{pendingCk=null;beforeShot();});
 document.querySelector('label[for="libIn"]').addEventListener("click",()=>{pendingCk=null;});
 async function leaveJob(){await saveNow();J=null;photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];$("vJob").hidden=true;$("dock").hidden=true;$("vList").hidden=false;scrollTo(0,0);renderList();}
 $("backBtn").onclick=leaveJob;$("dockDone").onclick=leaveJob;
@@ -398,7 +419,7 @@ function renderChecklist(){
   $("cl").querySelectorAll("[data-cs]").forEach(b=>b.onclick=()=>{const c=J.checklist.find(x=>x.id===b.dataset.cs);c.status=c.status===b.dataset.v?"":b.dataset.v;queueSave();renderChecklist();});
   $("cl").querySelectorAll("[data-cv]").forEach(inp=>inp.oninput=()=>{const c=J.checklist.find(x=>x.id===inp.dataset.cv);c.value=inp.value;queueSave();updateClProgress(c);});
   $("cl").querySelectorAll("[data-ca]").forEach(inp=>inp.oninput=()=>{const c=J.checklist.find(x=>x.id===inp.dataset.ca);c.answer=inp.value;queueSave();updateClProgress(c);});
-  $("cl").querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{pendingCk=b.dataset.cp;$("camIn").click();});
+  $("cl").querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{pendingCk=b.dataset.cp;beforeShot();$("camIn").click();});
 }
 function updateClProgress(c){const cl=J.checklist||[];const done=clDone(J);$("clCount").textContent=`${done} of ${cl.length} checked`;$("clMeter").style.width=(cl.length?done/cl.length*100:0)+"%";
   if(c){const el=$("ci_"+c.id);if(el)el.classList.toggle("done",!!(c.status||c.answer||(c.value!==""&&c.value!=null)));}}
@@ -423,7 +444,7 @@ async function buildBundle(list){
   const out=[];
   for(const j of list){
     const ps=(await photosFor(j.id)).sort((a,b)=>a.takenAt-b.takenAt);
-    const photosOut=[];for(const p of ps) photosOut.push({tag:p.tag,note:p.note||"",takenAt:p.takenAt,w:p.w,h:p.h,checklistId:p.checklistId||null,data:await toDataURL(p.blob)});
+    const photosOut=[];for(const p of ps) photosOut.push({tag:p.tag,note:p.note||"",takenAt:p.takenAt,w:p.w,h:p.h,checklistId:p.checklistId||null,tagBy:p.tagBy||"auto",heading:p.heading??null,lat:p.lat??null,lng:p.lng??null,acc:p.acc??null,data:await toDataURL(p.blob)});
     const {sentAt,...job}=j; out.push({...job,photos:photosOut});
   }
   return {app:"field-walk",version:1,exportedAt:new Date().toISOString(),jobs:out};

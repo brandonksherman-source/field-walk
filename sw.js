@@ -1,5 +1,5 @@
 // Field Walk offline cache. Bump VERSION whenever any app file changes.
-const VERSION = "field-walk-v2";
+const VERSION = "field-walk-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
