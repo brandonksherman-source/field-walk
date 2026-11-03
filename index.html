@@ -103,6 +103,20 @@ textarea.inp{min-height:130px;resize:vertical}
 .camera{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .camera label{display:grid;place-items:center;text-align:center}
 
+.cl{display:grid;gap:10px}
+.ci{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px;background:var(--surface)}
+.ci.done{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.ci .q{font-weight:800;font-size:16px}
+.ci .why{font-size:13px;color:var(--muted)}
+.ci .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ci .unit{font-weight:700;color:var(--muted)}
+.ci input.val{max-width:150px}
+.ci .phc{font-size:13px;font-weight:700;color:var(--blue)}
+.prog{display:flex;gap:10px;align-items:center}
+.meter{height:10px;border-radius:5px;background:var(--sunk);flex:1;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ok)}
+.bidtag{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.thumb .ck{font-size:12px;color:var(--blue);font-weight:700}
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .dock .row{max-width:900px;margin:0 auto}
 .dock .btn{flex:1}
@@ -127,12 +141,14 @@ textarea.inp{min-height:130px;resize:vertical}
 <main id="vList">
   <section class="send" id="sendBox">
     <div class="big" id="waitTxt">0 jobs waiting</div>
-    <div class="fine" id="sendHint">Everything saves on this iPad as you go. When you're back on wifi, send it to the Photo Estimator.</div>
+    <div class="fine" id="sendHint">Everything saves on this device as you go. When you're back on wifi, send it to the Photo Estimator.</div>
     <div class="row"><button class="btn btn-gold" id="sendBtn">Send to estimator</button><span class="fine" id="storeTxt"></span></div>
     <div id="sendOut"></div>
   </section>
   <section class="sec">
     <div class="sec-h"><h2>Site walks</h2><span class="fine" id="countTxt"></span></div>
+    <div class="row"><label class="btn btn-ghost" for="packetIn" style="display:inline-grid;place-items:center">Load a bid walk</label><span class="fine">Pick the <b>walk-….json</b> file the Photo Estimator saved. It brings the bid's checklist.</span></div>
+    <input type="file" id="packetIn" hidden>
     <div class="jobs" id="jobs"></div>
   </section>
   <p class="fine" id="installHint" hidden>To use this with no signal, install it once while online: tap the Share button in Safari, then <b>Add to Home Screen</b>, and open it from that icon.</p>
@@ -151,6 +167,12 @@ textarea.inp{min-height:130px;resize:vertical}
       <div class="field"><label class="lbl" for="fBid">Bid due</label><input class="inp" id="fBid" type="date"></div>
       <div class="field"><span class="lbl">Location</span><button class="btn btn-ghost" id="gpsBtn" type="button">Use my location</button><span class="fine" id="gpsTxt"></span></div>
     </div>
+  </section>
+
+  <section class="sec" aria-labelledby="hCl" id="clSec" hidden>
+    <div class="sec-h"><h2 id="hCl">Checklist</h2><span class="fine" id="clCount"></span></div>
+    <div class="prog"><div class="meter" aria-hidden="true"><i id="clMeter" style="width:0%"></i></div></div>
+    <div class="cl" id="cl"></div>
   </section>
 
   <section class="sec" aria-labelledby="hBldg">
@@ -219,7 +241,7 @@ const STRUCTS=[["unknown","Not sure"],["wood","Wood frame"],["masonry","Load-bea
 const SCOPES=[["full","Full demolition"],["partial","Partial / one wing"],["interior","Interior gut only"]];
 const TAGS=["Exterior","Roof","Interior","Basement","Mechanical","Suspect hazmat","X-ray / lead room","Site / access"];
 const SHOTS=["Exterior","Roof","Interior","Basement","Mechanical","Suspect hazmat","Site / access"];
-const BLANK={name:"",client:"",address:"",bid:"",lat:null,lng:null,type:"hospital",structure:"unknown",stories:"",footprint:"",gsf:"",gsfAuto:true,basement:"",era:"unknown",leadRooms:"",scope:"full",partial:100,found:"full",miles:15,abate:"",pw:false,campus:false,urban:false,rail:false,notes:""};
+const BLANK={name:"",client:"",address:"",bid:"",lat:null,lng:null,type:"hospital",structure:"unknown",stories:"",footprint:"",gsf:"",gsfAuto:true,basement:"",era:"unknown",leadRooms:"",scope:"full",partial:100,found:"full",miles:15,abate:"",pw:false,campus:false,urban:false,rail:false,notes:"",checklist:[],estimateId:null,leadId:null};
 const FIELDS=[["fName","name"],["fClient","client"],["fAddress","address"],["fBid","bid"],["fStories","stories"],["fFootprint","footprint"],["fGsf","gsf"],["fBasement","basement"],["fEra","era"],["fLeadRooms","leadRooms"],["fPartial","partial"],["fFound","found"],["fMiles","miles"],["fAbate","abate"],["fNotes","notes"]];
 const CHECKS=[["fPw","pw"],["fCampus","campus"],["fUrban","urban"],["fRail","rail"]];
 
@@ -242,7 +264,7 @@ const putPhoto=p=>tx("photos","readwrite",s=>s.put(p));
 const delPhoto=id=>tx("photos","readwrite",s=>s.delete(id));
 
 /* ---------- online / install state ---------- */
-function netState(){const on=navigator.onLine;$("net").classList.toggle("off",!on);$("netTxt").textContent=on?"Online":"No signal · saving on iPad";}
+function netState(){const on=navigator.onLine;$("net").classList.toggle("off",!on);$("netTxt").textContent=on?"Online":"No signal · saving on device";}
 addEventListener("online",()=>{netState();renderList();});addEventListener("offline",netState);
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
 if(!standalone) $("installHint").hidden=false;
@@ -255,20 +277,20 @@ async function renderList(){
   const waiting=jobs.filter(j=>!j.sentAt||j.updatedAt>j.sentAt);
   $("waitTxt").textContent=waiting.length?`${waiting.length} job${waiting.length>1?"s":""} waiting to send`:"Nothing waiting";
   $("sendBtn").disabled=!waiting.length;
-  $("sendHint").textContent=navigator.onLine?"You're online. Send everything to the Photo Estimator, then open the estimator and tap Import from field.":"No signal. Everything is saved on this iPad. Send it when you're back on wifi.";
+  $("sendHint").textContent=navigator.onLine?"You're online. Send everything to the Photo Estimator, then open the estimator and tap Import from field.":"No signal. Everything is saved on this device. Send it when you're back on wifi.";
   $("countTxt").textContent=jobs.length?`${jobs.length} total`:"";
   if(!jobs.length){$("jobs").innerHTML=`<div class="empty"><b>No site walks yet</b><span class="fine">Start one when you get to the building. It saves as you go, signal or not.</span><button class="btn btn-primary" id="newBtn2">Start a site walk</button></div>`;$("newBtn2").onclick=newJob;}
   else{
     const rows=await Promise.all(jobs.map(async j=>{const ps=await photosFor(j.id);let src="";if(ps[0]){src=URL.createObjectURL(ps[0].blob);thumbUrls.push(src);}
       const sent=j.sentAt&&j.updatedAt<=j.sentAt;
       return `<button class="job" data-id="${j.id}">${src?`<img class="ph" src="${src}" alt="">`:`<span class="ph"></span>`}
-        <span style="min-width:0"><span class="nm">${esc(j.name||"Untitled site walk")}</span><br><span class="fine">${esc(j.address||"No address")} · ${ps.length} photo${ps.length===1?"":"s"} · ${new Date(j.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></span>
+        <span style="min-width:0">${(j.checklist||[]).length?`<span class="bidtag">Bid walk · ${clDone(j)}/${j.checklist.length} checked</span><br>`:""}<span class="nm">${esc(j.name||"Untitled site walk")}</span><br><span class="fine">${esc(j.address||"No address")} · ${ps.length} photo${ps.length===1?"":"s"} · ${new Date(j.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></span>
         <span class="pill ${sent?"sent":"wait"}">${sent?"Sent":"Waiting"}</span></button>`;}));
     $("jobs").innerHTML=`<button class="btn btn-primary" id="newBtn2">Start a site walk</button>`+rows.join("");
     $("newBtn2").onclick=newJob;
     $("jobs").querySelectorAll(".job").forEach(b=>b.onclick=()=>openJob(b.dataset.id));
   }
-  try{const e=await navigator.storage.estimate();$("storeTxt").textContent=`Using ${(e.usage/1048576).toFixed(0)} MB on this iPad`;}catch(e){}
+  try{const e=await navigator.storage.estimate();$("storeTxt").textContent=`Using ${(e.usage/1048576).toFixed(0)} MB on this device`;}catch(e){}
 }
 
 /* ---------- job sheet ---------- */
@@ -279,7 +301,7 @@ async function openJob(id){
   J={...BLANK,...J};
   photos=(await photosFor(id)).sort((a,b)=>a.takenAt-b.takenAt);
   $("vList").hidden=true;$("vJob").hidden=false;$("dock").hidden=false;scrollTo(0,0);
-  resetDel();renderJob();renderPhotos();$("savedInd").textContent="Saved on iPad";
+  resetDel();renderJob();renderChecklist();renderPhotos();$("savedInd").textContent="Saved on device";
 }
 function chips(el,list,key){
   $(el).innerHTML=list.map(([v,l])=>`<button type="button" class="chip" data-v="${v}" aria-pressed="${J[key]===v}">${l}</button>`).join("");
@@ -302,12 +324,12 @@ FIELDS.forEach(([id,k])=>$(id).addEventListener("input",e=>{
 }));
 CHECKS.forEach(([id,k])=>$(id).addEventListener("change",e=>{J[k]=e.target.checked;queueSave();}));
 function queueSave(){$("savedInd").textContent="Saving…";clearTimeout(saveT);saveT=setTimeout(saveNow,350);}
-async function saveNow(){clearTimeout(saveT);if(!J) return;J.updatedAt=Date.now();try{await putJob(J);$("savedInd").textContent="Saved on iPad";}catch(e){$("savedInd").textContent="Couldn't save. iPad storage may be full.";}}
+async function saveNow(){clearTimeout(saveT);if(!J) return;J.updatedAt=Date.now();try{await putJob(J);$("savedInd").textContent="Saved on device";}catch(e){$("savedInd").textContent="Couldn't save. Storage on this device may be full.";}}
 $("gpsBtn").onclick=()=>{
   if(!navigator.geolocation){toast("Location isn't available on this device.");return;}
   $("gpsTxt").textContent="Finding you…";
   navigator.geolocation.getCurrentPosition(p=>{J.lat=p.coords.latitude;J.lng=p.coords.longitude;renderJob();queueSave();},
-    ()=>{$("gpsTxt").textContent="";toast("Couldn't get a location. A wifi-only iPad often can't without a connection.");},{enableHighAccuracy:true,timeout:15000});
+    ()=>{$("gpsTxt").textContent="";toast("Couldn't get a location. Without signal, some devices can't find one.");},{enableHighAccuracy:true,timeout:15000});
 };
 
 /* ---------- photos ---------- */
@@ -317,17 +339,19 @@ function shrink(file){return new Promise((res,rej)=>{
     const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
     c.toBlob(b=>b?res({blob:b,w,h}):rej(new Error("encode")),"image/jpeg",0.84);};
   img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("decode"));};img.src=url;});}
+let pendingCk=null;
+const clDone=j=>(j.checklist||[]).filter(c=>c.status||c.answer||(c.value!==""&&c.value!=null)).length;
 function nextTag(){const have=new Set(photos.map(p=>p.tag));return SHOTS.find(s=>!have.has(s))||"Interior";}
 async function addFiles(files){
   if(!files||!files.length) return;
   $("photoBusy").hidden=false;let added=0;
   for(const f of files){
     if(!f.type.startsWith("image/")&&!/\.(heic|heif|jpe?g|png)$/i.test(f.name)) continue;
-    try{const {blob,w,h}=await shrink(f);const p={id:uid(),jobId:J.id,blob,w,h,tag:nextTag(),note:"",takenAt:Date.now()};await putPhoto(p);photos.push(p);added++;}
+    try{const {blob,w,h}=await shrink(f);const ck=pendingCk&&(J.checklist||[]).find(c=>c.id===pendingCk);const p={id:uid(),jobId:J.id,blob,w,h,tag:ck?(TAGS.includes(ck.shot)?ck.shot:"Interior"):nextTag(),note:"",takenAt:Date.now(),checklistId:ck?ck.id:null};await putPhoto(p);photos.push(p);added++;}
     catch(e){toast("One photo couldn't be read. Try taking it again.");}
   }
-  $("photoBusy").hidden=true;
-  if(added){await saveNow();renderPhotos();toast(`${added} photo${added>1?"s":""} saved on iPad`,1800);}
+  $("photoBusy").hidden=true; pendingCk=null;
+  if(added){await saveNow();renderPhotos();renderChecklist();toast(`${added} photo${added>1?"s":""} saved on device`,1800);}
 }
 function renderPhotos(){
   photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];
@@ -336,7 +360,7 @@ function renderPhotos(){
   $("shots").innerHTML=SHOTS.map(s=>`<span class="shot ${have.has(s)?"got":""}">${have.has(s)?"✓ ":""}${s}</span>`).join("")+(J.type==="hospital"?`<span class="shot ${have.has("X-ray / lead room")?"got":""}">${have.has("X-ray / lead room")?"✓ ":""}X-ray / lead room</span>`:"");
   $("thumbs").innerHTML=photos.map((p,i)=>{const u=URL.createObjectURL(p.blob);photoUrls.push(u);
     return `<div class="thumb"><div class="img"><img src="${u}" alt="Photo ${i+1}"><span class="n">${i+1}</span><button class="x" data-del="${p.id}" aria-label="Remove photo ${i+1}">×</button></div>
-    <div class="meta"><select id="t_${p.id}" data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
+    <div class="meta">${p.checklistId&&(J.checklist||[]).find(c=>c.id===p.checklistId)?`<div class="ck">For: ${esc((J.checklist.find(c=>c.id===p.checklistId)||{}).q)}</div>`:""}<select id="t_${p.id}" data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
     <input id="n_${p.id}" data-note="${p.id}" value="${esc(p.note)}" placeholder="Note" aria-label="Note for photo ${i+1}"></div></div>`;}).join("");
   $("thumbs").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
     if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="?";b.setAttribute("aria-label","Tap again to remove");setTimeout(()=>{if(b.isConnected){b.dataset.armed="";b.textContent="×";}},2500);return;}
@@ -346,16 +370,52 @@ function renderPhotos(){
 }
 $("camIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
 $("libIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
-$("dockCam").onclick=()=>$("camIn").click();
+$("dockCam").onclick=()=>{pendingCk=null;$("camIn").click();};
+document.querySelector('label[for="camIn"]').addEventListener("click",()=>{pendingCk=null;});
+document.querySelector('label[for="libIn"]').addEventListener("click",()=>{pendingCk=null;});
 async function leaveJob(){await saveNow();J=null;photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];$("vJob").hidden=true;$("dock").hidden=true;$("vList").hidden=false;scrollTo(0,0);renderList();}
 $("backBtn").onclick=leaveJob;$("dockDone").onclick=leaveJob;
 function resetDel(){$("delBox").innerHTML=`<button class="btn btn-danger" id="delBtn">Delete this job</button>`;$("delBtn").onclick=armDelete;}
 function armDelete(){
-  $("delBox").innerHTML=`<div class="confirm">Delete "${esc(J.name||"this site walk")}" and its ${photos.length} photos from this iPad? This can't be undone.<div class="row"><button class="btn btn-danger" id="delYes">Delete</button><button class="btn btn-ghost" id="delNo">Keep it</button></div></div>`;
+  $("delBox").innerHTML=`<div class="confirm">Delete "${esc(J.name||"this site walk")}" and its ${photos.length} photos from this device? This can't be undone.<div class="row"><button class="btn btn-danger" id="delYes">Delete</button><button class="btn btn-ghost" id="delNo">Keep it</button></div></div>`;
   $("delNo").onclick=resetDel;
   $("delYes").onclick=async()=>{clearTimeout(saveT);for(const p of photos) await delPhoto(p.id);await delJob(J.id);J=null;resetDel();$("vJob").hidden=true;$("dock").hidden=true;$("vList").hidden=false;renderList();toast("Deleted");};
 }
 $("delBtn").onclick=armDelete;
+
+/* ---------- bid checklist ---------- */
+function renderChecklist(){
+  const cl=J.checklist||[];
+  $("clSec").hidden=!cl.length; if(!cl.length) return;
+  updateClProgress();
+  $("cl").innerHTML=cl.map((c,i)=>{const ph=photos.filter(p=>p.checklistId===c.id).length;const isDone=c.status||c.answer||(c.value!==""&&c.value!=null);
+    const yn=c.type==="yesno"?`<div class="ctl">${[["yes","Yes"],["no","No"],["unsure","Not sure"]].map(([v,l])=>`<button type="button" class="chip" data-cs="${c.id}" data-v="${v}" aria-pressed="${c.status===v}">${l}</button>`).join("")}</div>`:"";
+    const num=(c.type==="measure"||c.type==="count")?`<div class="ctl"><input class="inp num val" id="cv_${c.id}" data-cv="${c.id}" type="number" inputmode="decimal" value="${esc(c.value??"")}" aria-label="${esc(c.q)}"><span class="unit">${esc(c.unit||"")}</span></div>`:"";
+    return `<div class="ci ${isDone?"done":""}" id="ci_${c.id}"><div class="q">${i+1}. ${esc(c.q)}</div>${c.why?`<div class="why">${esc(c.why)}</div>`:""}
+      ${yn}${num}
+      <textarea class="inp" id="ca_${c.id}" data-ca="${c.id}" rows="${c.type==="text"?3:1}" placeholder="${c.type==="text"?"What you found (tap the mic to talk)":"Note"}" style="min-height:${c.type==="text"?"90px":"48px"}">${esc(c.answer||"")}</textarea>
+      <div class="ctl"><button type="button" class="btn btn-ghost" data-cp="${c.id}">Photo for this</button>${ph?`<span class="phc">${ph} photo${ph>1?"s":""}</span>`:""}</div></div>`;}).join("");
+  $("cl").querySelectorAll("[data-cs]").forEach(b=>b.onclick=()=>{const c=J.checklist.find(x=>x.id===b.dataset.cs);c.status=c.status===b.dataset.v?"":b.dataset.v;queueSave();renderChecklist();});
+  $("cl").querySelectorAll("[data-cv]").forEach(inp=>inp.oninput=()=>{const c=J.checklist.find(x=>x.id===inp.dataset.cv);c.value=inp.value;queueSave();updateClProgress(c);});
+  $("cl").querySelectorAll("[data-ca]").forEach(inp=>inp.oninput=()=>{const c=J.checklist.find(x=>x.id===inp.dataset.ca);c.answer=inp.value;queueSave();updateClProgress(c);});
+  $("cl").querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{pendingCk=b.dataset.cp;$("camIn").click();});
+}
+function updateClProgress(c){const cl=J.checklist||[];const done=clDone(J);$("clCount").textContent=`${done} of ${cl.length} checked`;$("clMeter").style.width=(cl.length?done/cl.length*100:0)+"%";
+  if(c){const el=$("ci_"+c.id);if(el)el.classList.toggle("done",!!(c.status||c.answer||(c.value!==""&&c.value!=null)));}}
+$("packetIn").onchange=async e=>{
+  const file=e.target.files[0]; e.target.value=""; if(!file) return;
+  let pk; try{pk=JSON.parse(await file.text());}catch(err){toast("That file isn't a walk from the Photo Estimator.");return;}
+  if(!pk||pk.kind!=="packet"||!Array.isArray(pk.checklist)){toast(pk&&Array.isArray(pk.jobs)?"That's a send-back file. Import it in the Photo Estimator instead.":"That file isn't a walk from the Photo Estimator.");return;}
+  const all=await getAllJobs(); const now=Date.now();
+  let j=pk.estimateId?all.find(x=>x.estimateId===pk.estimateId):null;
+  const items=pk.checklist.map(c=>({id:c.id||uid(),q:String(c.q||""),why:c.why||"",type:c.type||"text",unit:c.unit||"",shot:c.shot||"Interior",status:"",answer:"",value:""}));
+  if(j){ j={...BLANK,...j}; const have=new Set((j.checklist||[]).map(c=>c.id)); const add=items.filter(c=>!have.has(c.id)); j.checklist=(j.checklist||[]).concat(add); j.updatedAt=now; await putJob(j); toast(add.length?`Added ${add.length} new checklist items to this walk`:"This walk already has the latest checklist"); }
+  else { const f=pk.job||{}; j={...BLANK,id:uid(),createdAt:now,updatedAt:now,sentAt:null,estimateId:pk.estimateId||null,leadId:pk.leadId||null,checklist:items};
+    for(const k of Object.keys(BLANK)) if(f[k]!==undefined&&f[k]!==null&&!["checklist","notes","estimateId","leadId"].includes(k)) j[k]=f[k];
+    if(!STRUCTS.some(s=>s[0]===j.structure)) j.structure="unknown";
+    await putJob(j); toast(`Loaded ${items.length} checklist items`); }
+  openJob(j.id);
+};
 
 /* ---------- send to estimator ---------- */
 function toDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
@@ -363,7 +423,7 @@ async function buildBundle(list){
   const out=[];
   for(const j of list){
     const ps=(await photosFor(j.id)).sort((a,b)=>a.takenAt-b.takenAt);
-    const photosOut=[];for(const p of ps) photosOut.push({tag:p.tag,note:p.note||"",takenAt:p.takenAt,w:p.w,h:p.h,data:await toDataURL(p.blob)});
+    const photosOut=[];for(const p of ps) photosOut.push({tag:p.tag,note:p.note||"",takenAt:p.takenAt,w:p.w,h:p.h,checklistId:p.checklistId||null,data:await toDataURL(p.blob)});
     const {sentAt,...job}=j; out.push({...job,photos:photosOut});
   }
   return {app:"field-walk",version:1,exportedAt:new Date().toISOString(),jobs:out};
