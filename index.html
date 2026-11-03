@@ -3,337 +3,399 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Field Walk</title>
-<meta name="theme-color" content="#0F4377">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Field Walk">
+<meta name="theme-color" content="#0F4377">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
+<title>Field Walk</title>
 <style>
+/* Layout: one-hand field clipboard. Job list -> job sheet. Big touch targets, system fonts (no network needed), navy + hi-vis gold like the Photo Estimator. */
 :root{
-  --bg:#EDF1F5;--surface:#fff;--sunk:#E2E8EE;--ink:#13202C;--muted:#56677A;--line:#CBD5DF;
-  --navy:#0F4377;--blue:#0566B1;--sky:#3BA7DB;--gold:#F2B134;--gold-ink:#1D1606;
-  --ok:#2A7A4E;--ok-bg:#E2F2E9;--warn:#9A5F0A;--warn-bg:#FBEFD9;--bad:#B43C2C;--bad-bg:#F8E1DD;
-  --r:12px;color-scheme:light;
+  --bg:#EDF1F5; --surface:#FFFFFF; --sunk:#E2E8EE; --ink:#13202C; --muted:#56677A; --line:#CBD5DF;
+  --navy:#0F4377; --blue:#0566B1; --sky:#3BA7DB; --gold:#F2B134; --gold-ink:#1D1606; --on-brand:#FFFFFF;
+  --ok:#2A7A4E; --ok-bg:#E2F2E9; --warn:#9A5F0A; --warn-bg:#FBEFD9; --bad:#B43C2C; --bad-bg:#F8E1DD;
+  --f-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --f-display:"SF Pro Display",-apple-system,BlinkMacSystemFont,"Arial Narrow",Arial,sans-serif;
+  --r:12px; color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#0C141C;--surface:#131E29;--sunk:#0F1922;--ink:#E4ECF3;--muted:#93A5B6;--line:#26384A;
-  --navy:#1A5C9C;--blue:#4A9FE0;--sky:#5FBDE8;--gold:#F4BE52;
-  --ok:#62C48D;--ok-bg:#16301F;--warn:#E8B04E;--warn-bg:#33270F;--bad:#EE8370;--bad-bg:#3A1C17;color-scheme:dark}}
-*{box-sizing:border-box}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0C141C; --surface:#131E29; --sunk:#0F1922; --ink:#E4ECF3; --muted:#93A5B6; --line:#26384A;
+  --navy:#123E6B; --blue:#4A9FE0; --sky:#5FBDE8; --gold:#F4BE52; --gold-ink:#1D1606;
+  --ok:#62C48D; --ok-bg:#16301F; --warn:#E8B04E; --warn-bg:#33270F; --bad:#EE8370; --bad-bg:#3A1C17; color-scheme:dark }}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+h1,h2,h3{margin:0}
 [hidden]{display:none!important}
-h1,h2{margin:0}
-.bar{background:var(--navy);color:#fff;position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top)}
-.bar-in{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
-.mark{width:34px;height:34px;border-radius:7px;background:var(--gold);display:grid;place-items:center;flex:none}
-.bar h1{font-size:20px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;line-height:1}
-.bar .sub{font-size:12px;opacity:.8}
-.bar .act{margin-left:auto;display:flex;gap:8px}
-.bbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
-.bbtn.gold{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
-main{max-width:900px;margin:0 auto;padding:16px 16px 90px;display:grid;gap:14px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:14px;min-width:0}
-.card h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--blue)}
-.fine{font-size:13px;color:var(--muted)}
-.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;font-size:15px;min-height:46px}
-.btn-primary{background:var(--blue);color:#fff}
+.num{font-variant-numeric:tabular-nums}
+.fine{font-size:13.5px;color:var(--muted)}
+
+.bar{position:sticky;top:0;z-index:20;background:var(--navy);color:var(--on-brand);padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.bar-in{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bar h1{font-family:var(--f-display);font-weight:800;font-size:21px;letter-spacing:.05em;text-transform:uppercase;line-height:1.1}
+.bar .sub{font-size:12.5px;opacity:.8}
+.mark{width:38px;height:38px;border-radius:8px;background:var(--gold);display:grid;place-items:center;flex:none}
+.net{margin-left:auto;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12)}
+.net i{width:9px;height:9px;border-radius:50%;background:#7CD69D;display:block}
+.net.off i{background:var(--gold)}
+.back{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:var(--on-brand);border-radius:9px;padding:8px 13px;font-weight:700;cursor:pointer;min-height:44px}
+
+main{max-width:900px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(110px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:16px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:14px;min-width:0}
+.sec h2{font-family:var(--f-display);font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.sec-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-h .fine{margin-left:auto}
+
+.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer;min-height:48px;font-size:16px}
+.btn-primary{background:var(--blue);color:var(--on-brand)}
 .btn-gold{background:var(--gold);color:var(--gold-ink)}
 .btn-ghost{background:var(--sunk);border:1px solid var(--line)}
-.btn-bad{background:var(--bad-bg);color:var(--bad)}
+.btn-danger{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* list */
+.send{background:var(--navy);color:var(--on-brand);border-radius:var(--r);padding:16px;display:grid;gap:10px}
+.send .big{font-family:var(--f-display);font-size:24px;font-weight:800}
+.send .fine{color:var(--on-brand);opacity:.8}
+.jobs{display:grid;gap:10px}
+.job{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;text-align:left;width:100%;min-height:92px}
+.job .ph{width:72px;height:72px;border-radius:8px;background:var(--sunk);object-fit:cover;display:block}
+.job .nm{font-weight:800;font-size:17px;overflow-wrap:anywhere}
+.pill{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.wait{background:var(--warn-bg);color:var(--warn)}
+.pill.sent{background:var(--ok-bg);color:var(--ok)}
+.empty{text-align:center;padding:30px 16px;display:grid;gap:10px;justify-items:center}
+
+/* form */
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field.wide{grid-column:1/-1}
-.lbl,.field label{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-.inp{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:11px 12px;width:100%;min-width:0;font-size:16px}
-.chips{display:flex;gap:7px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:var(--surface);padding:9px 13px;border-radius:999px;cursor:pointer;font-size:15px;font-weight:700}
-.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
-.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
-.check{display:flex;gap:10px;align-items:center;font-size:15px;background:var(--sunk);border-radius:9px;padding:10px 12px}
-.check input{width:22px;height:22px;accent-color:var(--blue)}
-.list{display:grid;gap:10px}
-.job{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;cursor:pointer;text-align:left;width:100%}
-.job .pic{width:64px;height:64px;border-radius:8px;background:var(--sunk);object-fit:cover;display:block}
-.job .nm{font-weight:800;overflow-wrap:anywhere}
-.job input[type=checkbox]{width:24px;height:24px;accent-color:var(--blue)}
-.pill{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;white-space:nowrap}
-.pill.new{background:var(--warn-bg);color:var(--warn)}
-.pill.ok{background:var(--ok-bg);color:var(--ok)}
-.empty{text-align:center;padding:30px 16px;color:var(--muted)}
-.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.lbl{font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.inp{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:11px 12px;width:100%;min-width:0;min-height:48px;font-size:16px}
+textarea.inp{min-height:130px;resize:vertical}
+.inp:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--sky) 35%,transparent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:10px 14px;border-radius:999px;cursor:pointer;font-size:15px;font-weight:700;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--on-brand)}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.check{display:flex;gap:10px;align-items:center;font-size:15.5px;background:var(--sunk);border-radius:9px;padding:10px 12px;min-height:48px}
+.check input{width:22px;height:22px;accent-color:var(--blue);flex:none}
+.saved-ind{font-size:13px;color:var(--muted)}
+
+/* photos */
+.shots{display:flex;gap:6px;flex-wrap:wrap}
+.shot{font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px dashed var(--line);color:var(--muted)}
+.shot.got{border-style:solid;border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
 .thumb{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);display:grid;min-width:0}
 .thumb .img{position:relative;aspect-ratio:4/3;background:var(--sunk)}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb .n{position:absolute;left:6px;top:6px;background:var(--navy);color:#fff;font-size:12px;font-weight:800;border-radius:5px;padding:0 6px}
-.thumb .x{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:50%;width:30px;height:30px;font-weight:900;cursor:pointer}
-.thumb .meta{padding:7px;display:grid;gap:6px}
-.thumb select,.thumb input{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px;font-size:15px;width:100%;min-width:0}
-.tip{background:var(--sunk);border-radius:10px;padding:12px 14px;font-size:14px}
-.tip ol{margin:6px 0 0;padding-left:20px}
-.foot{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:9}
-.foot .row{max-width:900px;margin:0 auto}
-.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;z-index:50;max-width:calc(100% - 32px);box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
-.saved-note{font-size:13px;color:var(--ok);font-weight:700}
+.thumb .n{position:absolute;left:6px;top:6px;background:var(--navy);color:#fff;font-size:12.5px;font-weight:800;border-radius:5px;padding:1px 7px}
+.thumb .x{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.62);color:#fff;border:0;border-radius:50%;width:34px;height:34px;cursor:pointer;font-weight:900;font-size:17px}
+.thumb .meta{padding:8px;display:grid;gap:6px}
+.thumb select,.thumb input{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:8px;font-size:15px;width:100%;min-width:0;min-height:40px}
+.camera{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.camera label{display:grid;place-items:center;text-align:center}
+
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dock .row{max-width:900px;margin:0 auto}
+.dock .btn{flex:1}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;font-weight:700;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.confirm{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:12px;display:grid;gap:10px;font-weight:700}
+.busy{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.spin{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
 </style>
 </head>
 <body>
-<header class="bar"><div class="bar-in">
-  <span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 20h18M5 20V9l4-3v14M9 20V4h7v16M16 20v-9h3v9" fill="none" stroke="#1D1606" stroke-width="2"/></svg></span>
-  <div><h1>Field Walk</h1><div class="sub">Ahrens Contracting · site walks</div></div>
-  <div class="act"><button class="bbtn" id="backBtn" hidden>‹ All walks</button><button class="bbtn gold" id="newBtn">+ New walk</button></div>
-</div></header>
-
-<!-- LIST VIEW -->
-<main id="listView">
-  <div class="tip" id="installTip" hidden><b>Put this on the home screen:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works with no signal once it's there.</div>
-  <div class="list" id="list"></div>
-  <div class="card">
-    <h2>Send to the estimator</h2>
-    <p class="fine" style="margin:0">Check the walks to send (new and changed ones are checked for you), then tap <b>Export</b>. Save the file to Files or AirDrop it, and open the <b>Photo Estimator</b> → <b>Import from field</b>. Photos and notes stay on this iPad until you delete the walk.</p>
-    <p class="fine" style="margin:0" id="storageNote"></p>
+<header class="bar">
+  <div class="bar-in">
+    <span class="mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 20h18M5 20V9l4-3v14M9 20V4h7v16M16 20v-9h3v9" fill="none" stroke="#1D1606" stroke-width="2"/></svg></span>
+    <div><h1>Field Walk</h1><div class="sub" id="subtitle">Site walks · works with no signal</div></div>
+    <span class="net" id="net"><i></i><span id="netTxt">Online</span></span>
   </div>
+</header>
+
+<!-- JOB LIST -->
+<main id="vList">
+  <section class="send" id="sendBox">
+    <div class="big" id="waitTxt">0 jobs waiting</div>
+    <div class="fine" id="sendHint">Everything saves on this iPad as you go. When you're back on wifi, send it to the Photo Estimator.</div>
+    <div class="row"><button class="btn btn-gold" id="sendBtn">Send to estimator</button><span class="fine" id="storeTxt"></span></div>
+    <div id="sendOut"></div>
+  </section>
+  <section class="sec">
+    <div class="sec-h"><h2>Site walks</h2><span class="fine" id="countTxt"></span></div>
+    <div class="jobs" id="jobs"></div>
+  </section>
+  <p class="fine" id="installHint" hidden>To use this with no signal, install it once while online: tap the Share button in Safari, then <b>Add to Home Screen</b>, and open it from that icon.</p>
 </main>
 
-<!-- EDIT VIEW -->
-<main id="editView" hidden>
-  <section class="card">
-    <h2>Job</h2>
+<!-- JOB SHEET -->
+<main id="vJob" hidden>
+  <div class="row"><button class="btn btn-ghost" id="backBtn">‹ All jobs</button><span class="saved-ind" id="savedInd" aria-live="polite"></span></div>
+
+  <section class="sec" aria-labelledby="hJob">
+    <h2 id="hJob">Job</h2>
     <div class="fields">
-      <div class="field wide"><label for="fName">Job name</label><input class="inp" id="fName" placeholder="Old East Wing demolition"></div>
-      <div class="field"><label for="fClient">Owner / GC</label><input class="inp" id="fClient"></div>
-      <div class="field"><label for="fBid">Bid due</label><input class="inp" id="fBid" type="date"></div>
-      <div class="field wide"><label for="fAddr">Address</label><div class="row" style="flex-wrap:nowrap"><input class="inp" id="fAddr" placeholder="Street, city"><button class="btn btn-ghost" id="locBtn" type="button" style="flex:none">📍 Here</button></div><span class="fine" id="locNote"></span></div>
+      <div class="field wide"><label class="lbl" for="fName">Job name</label><input class="inp" id="fName" placeholder="Old St. Mary's east wing" autocomplete="off"></div>
+      <div class="field"><label class="lbl" for="fClient">Owner / GC</label><input class="inp" id="fClient" autocomplete="off"></div>
+      <div class="field"><label class="lbl" for="fAddress">Address</label><input class="inp" id="fAddress" autocomplete="off"></div>
+      <div class="field"><label class="lbl" for="fBid">Bid due</label><input class="inp" id="fBid" type="date"></div>
+      <div class="field"><span class="lbl">Location</span><button class="btn btn-ghost" id="gpsBtn" type="button">Use my location</button><span class="fine" id="gpsTxt"></span></div>
     </div>
   </section>
 
-  <section class="card">
-    <h2>Photos</h2>
-    <p class="fine" style="margin:0">Exterior from each corner, roof, basement, mechanical rooms, floor tile, pipe insulation, ceilings, X-ray rooms.</p>
-    <div class="row">
-      <label class="btn btn-primary" for="camIn" style="display:inline-flex;align-items:center">📷 Take photo</label>
-      <label class="btn btn-ghost" for="libIn" style="display:inline-flex;align-items:center">Choose from library</label>
-      <span class="fine" id="photoCount"></span>
+  <section class="sec" aria-labelledby="hBldg">
+    <h2 id="hBldg">Building</h2>
+    <div class="field"><span class="lbl">Type</span><div class="chips" id="cType"></div></div>
+    <div class="field"><span class="lbl">Structure</span><div class="chips" id="cStructure"></div></div>
+    <div class="fields">
+      <div class="field"><label class="lbl" for="fStories">Stories</label><input class="inp num" id="fStories" type="number" inputmode="numeric" min="1"></div>
+      <div class="field"><label class="lbl" for="fFootprint">Footprint SF</label><input class="inp num" id="fFootprint" type="number" inputmode="numeric" min="0"></div>
+      <div class="field"><label class="lbl" for="fGsf">Total floor SF</label><input class="inp num" id="fGsf" type="number" inputmode="numeric" min="0"><span class="fine" id="gsfNote"></span></div>
+      <div class="field"><label class="lbl" for="fBasement">Basement levels</label><input class="inp num" id="fBasement" type="number" inputmode="numeric" min="0" max="4"></div>
+      <div class="field"><label class="lbl" for="fEra">When built</label><select class="inp" id="fEra"><option value="unknown">Not sure</option><option value="pre1980">Before 1980</option><option value="y1980">1980 – 2000</option><option value="post2000">After 2000</option></select></div>
+      <div class="field"><label class="lbl" for="fLeadRooms">Lead-lined rooms</label><input class="inp num" id="fLeadRooms" type="number" inputmode="numeric" min="0"></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="hScope">
+    <h2 id="hScope">Scope & site</h2>
+    <div class="field"><span class="lbl">Scope</span><div class="chips" id="cScope"></div></div>
+    <div class="fields">
+      <div class="field" id="wPartial"><label class="lbl" for="fPartial">% coming down</label><input class="inp num" id="fPartial" type="number" inputmode="numeric" min="5" max="100"></div>
+      <div class="field" id="wFound"><label class="lbl" for="fFound">Foundations</label><select class="inp" id="fFound"><option value="full">Remove all, backfill</option><option value="slab">Slab only</option><option value="leave">Leave in place</option></select></div>
+      <div class="field"><label class="lbl" for="fMiles">Miles to landfill</label><input class="inp num" id="fMiles" type="number" inputmode="numeric" min="1"></div>
+      <div class="field"><label class="lbl" for="fAbate">Abatement quote $</label><input class="inp num" id="fAbate" type="number" inputmode="numeric" min="0" placeholder="If you have one"></div>
+    </div>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="fPw"> Prevailing wage</label>
+      <label class="check"><input type="checkbox" id="fCampus"> Next to occupied hospital / campus</label>
+      <label class="check"><input type="checkbox" id="fUrban"> Tight urban site</label>
+      <label class="check"><input type="checkbox" id="fRail"> Next to active track</label>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="hNotes">
+    <h2 id="hNotes">Walk-through notes</h2>
+    <textarea class="inp" id="fNotes" placeholder="What you saw: access, utilities, tanks, what the owner said, anything that changes the price. Tap the mic on the keyboard to talk instead of type."></textarea>
+  </section>
+
+  <section class="sec" aria-labelledby="hPhotos">
+    <div class="sec-h"><h2 id="hPhotos">Photos</h2><span class="fine" id="photoCount"></span></div>
+    <div class="shots" id="shots" aria-label="Shot list"></div>
+    <div class="camera">
+      <label class="btn btn-primary" for="camIn">Take photo</label>
+      <label class="btn btn-ghost" for="libIn">Add from Photos</label>
     </div>
     <input type="file" id="camIn" accept="image/*" capture="environment" hidden>
     <input type="file" id="libIn" accept="image/*" multiple hidden>
+    <div class="busy" id="photoBusy" hidden><span class="spin"></span><span>Saving photo…</span></div>
     <div class="thumbs" id="thumbs"></div>
+    <p class="fine" style="margin:0">Photos taken here stay inside this app, not your camera roll, until you send them.</p>
   </section>
 
-  <section class="card">
-    <h2>Building</h2>
-    <div class="field"><span class="lbl">Building type</span><div class="chips" id="cType"></div></div>
-    <div class="field"><span class="lbl">Structure</span><div class="chips" id="cStruct"></div></div>
-    <div class="fields">
-      <div class="field"><label for="fStories">Stories above grade</label><input class="inp" id="fStories" type="number" inputmode="numeric" min="1"></div>
-      <div class="field"><label for="fFp">Footprint (SF)</label><input class="inp" id="fFp" type="number" inputmode="numeric" min="0"></div>
-      <div class="field"><label for="fGsf">Total floor area (SF)</label><input class="inp" id="fGsf" type="number" inputmode="numeric" min="0"><span class="fine" id="gsfNote"></span></div>
-      <div class="field"><label for="fBsmt">Basement levels</label><input class="inp" id="fBsmt" type="number" inputmode="numeric" min="0" max="4"></div>
-      <div class="field"><label for="fEra">When built</label><select class="inp" id="fEra"><option value="unknown">Not sure</option><option value="pre1980">Before 1980</option><option value="y1980">1980 – 2000</option><option value="post2000">After 2000</option></select></div>
-      <div class="field"><label for="fLead">Lead-lined rooms (X-ray, CT)</label><input class="inp" id="fLead" type="number" inputmode="numeric" min="0" placeholder="Blank = not checked"></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Scope & site</h2>
-    <div class="field"><span class="lbl">Scope</span><div class="chips" id="cScope"></div></div>
-    <div class="fields">
-      <div class="field" id="wPartial"><label for="fPartial">Share coming down (%)</label><input class="inp" id="fPartial" type="number" inputmode="numeric" min="5" max="100" step="5"></div>
-      <div class="field" id="wFound"><label for="fFound">Foundations</label><select class="inp" id="fFound"><option value="full">Remove all, backfill</option><option value="slab">Slab only, footings stay</option><option value="leave">Leave in place</option></select></div>
-      <div class="field"><label for="fMiles">Miles to landfill / recycler</label><input class="inp" id="fMiles" type="number" inputmode="numeric" min="1"></div>
-      <div class="field"><label for="fAbate">Abatement sub quote ($)</label><input class="inp" id="fAbate" type="number" inputmode="numeric" min="0" placeholder="If you have one"></div>
-    </div>
-    <div class="checks">
-      <label class="check"><input type="checkbox" id="fPw"> Prevailing wage (public money)</label>
-      <label class="check"><input type="checkbox" id="fCampus"> Next to occupied hospital / campus</label>
-      <label class="check"><input type="checkbox" id="fUrban"> Tight urban site, street closures</label>
-      <label class="check"><input type="checkbox" id="fRail"> Next to active track</label>
-    </div>
-    <div class="field"><label for="fNotes">Walk-through notes</label><textarea class="inp" id="fNotes" rows="5" placeholder="Access, utilities, tanks, what the owner said. Claude reads these with the photos."></textarea></div>
-  </section>
-
-  <section class="card">
-    <div class="row"><span class="saved-note" id="savedNote">Saves as you go</span><button class="btn btn-bad" id="delBtn" style="margin-left:auto">Delete this walk</button></div>
+  <section class="sec">
+    <div id="delBox"><button class="btn btn-danger" id="delBtn">Delete this job</button></div>
   </section>
 </main>
 
-<div class="foot" id="listFoot"><div class="row">
-  <span class="fine" id="selCount" style="flex:1"></span>
-  <button class="btn btn-gold" id="exportBtn">Export</button>
-</div></div>
-<div class="toast" id="toast" role="status" hidden></div>
+<div class="dock" id="dock" hidden><div class="row"><button class="btn btn-primary" id="dockCam">Take photo</button><button class="btn btn-ghost" id="dockDone">Done</button></div></div>
+<div class="toast" id="toast" hidden role="status"></div>
 
 <script>
-/* Field Walk — offline site-walk sheet for the Ahrens Photo Estimator.
-   Data lives in IndexedDB on this device. Export writes {app:"field-walk",version:1,jobs:[...]}
-   which the estimator's "Import from field" reads. Field names match jobFromField() there. */
+"use strict";
+/* ---------- constants (must match the Photo Estimator) ---------- */
 const TYPES=[["hospital","Hospital / clinic"],["office","Office"],["school","School"],["industrial","Industrial / plant"],["retail","Retail"],["garage","Parking garage"],["residential","Apartments"]];
 const STRUCTS=[["unknown","Not sure"],["wood","Wood frame"],["masonry","Load-bearing masonry"],["steel","Steel frame"],["concrete","Concrete frame"],["mixed","Mixed / additions"]];
 const SCOPES=[["full","Full demolition"],["partial","Partial / one wing"],["interior","Interior gut only"]];
 const TAGS=["Exterior","Roof","Interior","Basement","Mechanical","Suspect hazmat","X-ray / lead room","Site / access"];
-const MAX_EDGE=1600, JPEG_Q=0.72;
+const SHOTS=["Exterior","Roof","Interior","Basement","Mechanical","Suspect hazmat","Site / access"];
+const BLANK={name:"",client:"",address:"",bid:"",lat:null,lng:null,type:"hospital",structure:"unknown",stories:"",footprint:"",gsf:"",gsfAuto:true,basement:"",era:"unknown",leadRooms:"",scope:"full",partial:100,found:"full",miles:15,abate:"",pw:false,campus:false,urban:false,rail:false,notes:""};
+const FIELDS=[["fName","name"],["fClient","client"],["fAddress","address"],["fBid","bid"],["fStories","stories"],["fFootprint","footprint"],["fGsf","gsf"],["fBasement","basement"],["fEra","era"],["fLeadRooms","leadRooms"],["fPartial","partial"],["fFound","found"],["fMiles","miles"],["fAbate","abate"],["fNotes","notes"]];
+const CHECKS=[["fPw","pw"],["fCampus","campus"],["fUrban","urban"],["fRail","rail"]];
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-let toastT;function toast(m,ms=3500){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms);}
+let toastT; function toast(m,ms=3200){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,ms);}
 
-/* ---------- storage (IndexedDB) ---------- */
-let dbp;
-function idb(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open("field-walk",1);r.onupgradeneeded=()=>{r.result.createObjectStore("jobs",{keyPath:"id"});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
-async function tx(mode,fn){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction("jobs",mode);const s=t.objectStore("jobs");const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});}
-const allJobs=()=>tx("readonly",s=>s.getAll());
-const putJob=j=>tx("readwrite",s=>s.put(j));
-const delJob=id=>tx("readwrite",s=>s.delete(id));
+/* ---------- storage (IndexedDB on the iPad) ---------- */
+let DB;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open("field-walk",1);
+  r.onupgradeneeded=()=>{const d=r.result; d.createObjectStore("jobs",{keyPath:"id"}); const p=d.createObjectStore("photos",{keyPath:"id"}); p.createIndex("jobId","jobId");};
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);});}
+function tx(store,mode,fn){return new Promise((res,rej)=>{const t=DB.transaction(store,mode);const s=t.objectStore(store);let out;const r=fn(s);if(r&&"onsuccess" in r) r.onsuccess=()=>out=r.result;t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});}
+const getAllJobs=()=>tx("jobs","readonly",s=>s.getAll());
+const putJob=j=>tx("jobs","readwrite",s=>s.put(j));
+const delJob=id=>tx("jobs","readwrite",s=>s.delete(id));
+const photosFor=jobId=>tx("photos","readonly",s=>s.index("jobId").getAll(jobId));
+const putPhoto=p=>tx("photos","readwrite",s=>s.put(p));
+const delPhoto=id=>tx("photos","readwrite",s=>s.delete(id));
 
-/* ---------- state ---------- */
-let jobs=[]; let cur=null; let selected=new Set();
-function blankJob(){const t=Date.now();return{id:uid(),createdAt:t,updatedAt:t,exportedAt:0,name:"",client:"",address:"",lat:null,lng:null,bid:"",type:"hospital",structure:"unknown",stories:"",footprint:"",gsf:"",gsfAuto:true,basement:"",era:"unknown",leadRooms:"",scope:"full",partial:100,found:"full",miles:"",abate:"",pw:false,campus:false,urban:false,rail:false,notes:"",photos:[]};}
+/* ---------- online / install state ---------- */
+function netState(){const on=navigator.onLine;$("net").classList.toggle("off",!on);$("netTxt").textContent=on?"Online":"No signal · saving on iPad";}
+addEventListener("online",()=>{netState();renderList();});addEventListener("offline",netState);
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+if(!standalone) $("installHint").hidden=false;
 
 /* ---------- list view ---------- */
-async function loadList(){
-  jobs=(await allJobs()).sort((a,b)=>b.updatedAt-a.updatedAt);
-  selected=new Set(jobs.filter(j=>j.updatedAt>(j.exportedAt||0)).map(j=>j.id));
-  renderList();
+let jobs=[]; let thumbUrls=[];
+async function renderList(){
+  jobs=(await getAllJobs()).sort((a,b)=>b.updatedAt-a.updatedAt);
+  thumbUrls.forEach(u=>URL.revokeObjectURL(u)); thumbUrls=[];
+  const waiting=jobs.filter(j=>!j.sentAt||j.updatedAt>j.sentAt);
+  $("waitTxt").textContent=waiting.length?`${waiting.length} job${waiting.length>1?"s":""} waiting to send`:"Nothing waiting";
+  $("sendBtn").disabled=!waiting.length;
+  $("sendHint").textContent=navigator.onLine?"You're online. Send everything to the Photo Estimator, then open the estimator and tap Import from field.":"No signal. Everything is saved on this iPad. Send it when you're back on wifi.";
+  $("countTxt").textContent=jobs.length?`${jobs.length} total`:"";
+  if(!jobs.length){$("jobs").innerHTML=`<div class="empty"><b>No site walks yet</b><span class="fine">Start one when you get to the building. It saves as you go, signal or not.</span><button class="btn btn-primary" id="newBtn2">Start a site walk</button></div>`;$("newBtn2").onclick=newJob;}
+  else{
+    const rows=await Promise.all(jobs.map(async j=>{const ps=await photosFor(j.id);let src="";if(ps[0]){src=URL.createObjectURL(ps[0].blob);thumbUrls.push(src);}
+      const sent=j.sentAt&&j.updatedAt<=j.sentAt;
+      return `<button class="job" data-id="${j.id}">${src?`<img class="ph" src="${src}" alt="">`:`<span class="ph"></span>`}
+        <span style="min-width:0"><span class="nm">${esc(j.name||"Untitled site walk")}</span><br><span class="fine">${esc(j.address||"No address")} · ${ps.length} photo${ps.length===1?"":"s"} · ${new Date(j.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></span>
+        <span class="pill ${sent?"sent":"wait"}">${sent?"Sent":"Waiting"}</span></button>`;}));
+    $("jobs").innerHTML=`<button class="btn btn-primary" id="newBtn2">Start a site walk</button>`+rows.join("");
+    $("newBtn2").onclick=newJob;
+    $("jobs").querySelectorAll(".job").forEach(b=>b.onclick=()=>openJob(b.dataset.id));
+  }
+  try{const e=await navigator.storage.estimate();$("storeTxt").textContent=`Using ${(e.usage/1048576).toFixed(0)} MB on this iPad`;}catch(e){}
 }
-function renderList(){
-  const el=$("list");
-  if(!jobs.length){el.innerHTML=`<div class="card empty"><b>No site walks yet.</b><br>Tap <b>+ New walk</b> when you're standing at the building.</div>`;}
-  else el.innerHTML=jobs.map(j=>{
-    const changed=j.updatedAt>(j.exportedAt||0);
-    const pic=j.photos[0]?`<img class="pic" src="${j.photos[0].data}" alt="">`:`<span class="pic"></span>`;
-    return `<div class="job" data-open="${j.id}" role="button" tabindex="0">
-      ${pic}
-      <div style="min-width:0"><div class="nm">${esc(j.name||"Untitled site walk")}</div>
-      <div class="fine">${esc(j.address||"No address")} · ${j.photos.length} photo${j.photos.length===1?"":"s"} · ${new Date(j.updatedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-      <div style="margin-top:4px">${changed?`<span class="pill new">${j.exportedAt?"Changed since export":"Not exported"}</span>`:`<span class="pill ok">Exported</span>`}</div></div>
-      <input type="checkbox" data-sel="${j.id}" ${selected.has(j.id)?"checked":""} aria-label="Include ${esc(j.name||"this walk")} in export">
-    </div>`;}).join("");
-  el.querySelectorAll("[data-sel]").forEach(c=>{c.onclick=e=>e.stopPropagation();c.onchange=()=>{c.checked?selected.add(c.dataset.sel):selected.delete(c.dataset.sel);updateSel();};});
-  el.querySelectorAll("[data-open]").forEach(r=>{const go=()=>openJob(r.dataset.open);r.onclick=go;r.onkeydown=e=>{if(e.key==="Enter")go();};});
-  updateSel();
-}
-function updateSel(){
-  const k=selected.size; $("selCount").textContent=jobs.length?`${k} of ${jobs.length} walk${jobs.length===1?"":"s"} selected`:"";
-  $("exportBtn").disabled=!k;
-}
-function showList(){cur=null;$("editView").hidden=true;$("listView").hidden=false;$("listFoot").hidden=false;$("backBtn").hidden=true;$("newBtn").hidden=false;window.scrollTo(0,0);loadList();}
 
-/* ---------- edit view ---------- */
-const BIND=[["fName","name"],["fClient","client"],["fAddr","address"],["fBid","bid"],["fStories","stories"],["fFp","footprint"],["fGsf","gsf"],["fBsmt","basement"],["fEra","era"],["fLead","leadRooms"],["fPartial","partial"],["fFound","found"],["fMiles","miles"],["fAbate","abate"],["fNotes","notes"]];
-const CHK=[["fPw","pw"],["fCampus","campus"],["fUrban","urban"],["fRail","rail"]];
+/* ---------- job sheet ---------- */
+let J=null; let photos=[]; let photoUrls=[]; let saveT;
+async function newJob(){const now=Date.now();J={...BLANK,id:uid(),createdAt:now,updatedAt:now,sentAt:null};await putJob(J);openJob(J.id);}
 async function openJob(id){
-  cur=id?jobs.find(j=>j.id===id):blankJob();
-  if(!id){await putJob(cur);}
-  $("listView").hidden=true;$("listFoot").hidden=true;$("editView").hidden=false;$("backBtn").hidden=false;$("newBtn").hidden=true;
-  renderEdit();renderPhotos();window.scrollTo(0,0);
-  if(!id) $("fName").focus();
+  J=(await getAllJobs()).find(j=>j.id===id); if(!J) return;
+  J={...BLANK,...J};
+  photos=(await photosFor(id)).sort((a,b)=>a.takenAt-b.takenAt);
+  $("vList").hidden=true;$("vJob").hidden=false;$("dock").hidden=false;scrollTo(0,0);
+  resetDel();renderJob();renderPhotos();$("savedInd").textContent="Saved on iPad";
 }
 function chips(el,list,key){
-  $(el).innerHTML=list.map(([v,l])=>`<button type="button" class="chip" data-v="${v}" aria-pressed="${cur[key]===v}">${l}</button>`).join("");
-  $(el).querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cur[key]=b.dataset.v;renderEdit();save();});
+  $(el).innerHTML=list.map(([v,l])=>`<button type="button" class="chip" data-v="${v}" aria-pressed="${J[key]===v}">${l}</button>`).join("");
+  $(el).querySelectorAll(".chip").forEach(b=>b.onclick=()=>{J[key]=b.dataset.v;renderJob();queueSave();});
 }
-function renderEdit(){
-  chips("cType",TYPES,"type");chips("cStruct",STRUCTS,"structure");chips("cScope",SCOPES,"scope");
-  BIND.forEach(([id,k])=>{const e=$(id);if(document.activeElement!==e)e.value=cur[k]??"";});
-  CHK.forEach(([id,k])=>$(id).checked=!!cur[k]);
-  $("wPartial").hidden=cur.scope!=="partial";$("wFound").hidden=cur.scope==="interior";
-  $("gsfNote").textContent=cur.gsfAuto?"Footprint × stories. Type over it if different.":"Entered by hand.";
-  $("locNote").textContent=cur.lat!=null?`GPS ${(+cur.lat).toFixed(5)}, ${(+cur.lng).toFixed(5)}`:"";
+function renderJob(){
+  chips("cType",TYPES,"type");chips("cStructure",STRUCTS,"structure");chips("cScope",SCOPES,"scope");
+  FIELDS.forEach(([id,k])=>{const e=$(id);if(document.activeElement!==e) e.value=J[k]??"";});
+  CHECKS.forEach(([id,k])=>$(id).checked=!!J[k]);
+  $("wPartial").hidden=J.scope!=="partial";$("wFound").hidden=J.scope==="interior";
+  $("gsfNote").textContent=J.gsfAuto?"Footprint × stories":"Entered by hand";
+  $("gpsTxt").textContent=J.lat!=null?`${J.lat.toFixed(5)}, ${J.lng.toFixed(5)}`:"";
 }
-BIND.forEach(([id,k])=>$(id).addEventListener("input",e=>{
-  cur[k]=e.target.value;
-  if(k==="gsf")cur.gsfAuto=e.target.value==="";
-  if((k==="footprint"||k==="stories")&&cur.gsfAuto){const g=(+cur.footprint||0)*(+cur.stories||0);cur.gsf=g?String(g):"";$("fGsf").value=cur.gsf;}
-  $("gsfNote").textContent=cur.gsfAuto?"Footprint × stories. Type over it if different.":"Entered by hand.";
-  save();
+FIELDS.forEach(([id,k])=>$(id).addEventListener("input",e=>{
+  J[k]=e.target.value;
+  if(k==="gsf") J.gsfAuto=e.target.value==="";
+  if((k==="footprint"||k==="stories")&&J.gsfAuto){const g=(parseFloat(J.footprint)||0)*(parseFloat(J.stories)||0);J.gsf=g||"";$("fGsf").value=J.gsf;}
+  $("gsfNote").textContent=J.gsfAuto?"Footprint × stories":"Entered by hand";
+  queueSave();
 }));
-CHK.forEach(([id,k])=>$(id).addEventListener("change",e=>{cur[k]=e.target.checked;save();}));
-let saveT;
-function save(){
-  if(!cur)return; cur.updatedAt=Date.now(); $("savedNote").textContent="Saving…";
-  clearTimeout(saveT); const j=cur;
-  saveT=setTimeout(async()=>{try{await putJob(j);$("savedNote").textContent="Saved on this iPad";}catch(e){$("savedNote").textContent="Couldn't save — storage may be full";toast("Couldn't save. The iPad may be out of storage.");}},300);
-}
-$("locBtn").onclick=()=>{
-  if(!navigator.geolocation){toast("Location isn't available here.");return;}
-  $("locNote").textContent="Finding you…";
-  navigator.geolocation.getCurrentPosition(p=>{cur.lat=p.coords.latitude;cur.lng=p.coords.longitude;renderEdit();save();toast("Location saved with this walk");},
-    ()=>{$("locNote").textContent="";toast("Couldn't get location. Check Settings → Safari → Location.");},{enableHighAccuracy:true,timeout:15000});
+CHECKS.forEach(([id,k])=>$(id).addEventListener("change",e=>{J[k]=e.target.checked;queueSave();}));
+function queueSave(){$("savedInd").textContent="Saving…";clearTimeout(saveT);saveT=setTimeout(saveNow,350);}
+async function saveNow(){clearTimeout(saveT);if(!J) return;J.updatedAt=Date.now();try{await putJob(J);$("savedInd").textContent="Saved on iPad";}catch(e){$("savedInd").textContent="Couldn't save. iPad storage may be full.";}}
+$("gpsBtn").onclick=()=>{
+  if(!navigator.geolocation){toast("Location isn't available on this device.");return;}
+  $("gpsTxt").textContent="Finding you…";
+  navigator.geolocation.getCurrentPosition(p=>{J.lat=p.coords.latitude;J.lng=p.coords.longitude;renderJob();queueSave();},
+    ()=>{$("gpsTxt").textContent="";toast("Couldn't get a location. A wifi-only iPad often can't without a connection.");},{enableHighAccuracy:true,timeout:15000});
 };
 
 /* ---------- photos ---------- */
-function shrink(file){
-  return new Promise((res,rej)=>{
-    const url=URL.createObjectURL(file); const img=new Image();
-    img.onload=()=>{const s=Math.min(1,MAX_EDGE/Math.max(img.naturalWidth,img.naturalHeight));const w=Math.round(img.naturalWidth*s),h=Math.round(img.naturalHeight*s);
-      const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL("image/jpeg",JPEG_Q));};
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
-    img.src=url;
-  });
-}
-async function addFiles(list){
-  let added=0;
-  for(const f of list){ if(!f.type.startsWith("image/")&&!/\.(heic|heif|jpe?g|png)$/i.test(f.name)) continue;
-    try{const data=await shrink(f);cur.photos.push({id:uid(),data,tag:cur.photos.length?"Interior":"Exterior",note:"",takenAt:Date.now()});added++;}catch(e){}
+function shrink(file){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{const max=2000;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+    const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    c.toBlob(b=>b?res({blob:b,w,h}):rej(new Error("encode")),"image/jpeg",0.84);};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("decode"));};img.src=url;});}
+function nextTag(){const have=new Set(photos.map(p=>p.tag));return SHOTS.find(s=>!have.has(s))||"Interior";}
+async function addFiles(files){
+  if(!files||!files.length) return;
+  $("photoBusy").hidden=false;let added=0;
+  for(const f of files){
+    if(!f.type.startsWith("image/")&&!/\.(heic|heif|jpe?g|png)$/i.test(f.name)) continue;
+    try{const {blob,w,h}=await shrink(f);const p={id:uid(),jobId:J.id,blob,w,h,tag:nextTag(),note:"",takenAt:Date.now()};await putPhoto(p);photos.push(p);added++;}
+    catch(e){toast("One photo couldn't be read. Try taking it again.");}
   }
-  if(added){renderPhotos();save();} else toast("That photo couldn't be read.");
+  $("photoBusy").hidden=true;
+  if(added){await saveNow();renderPhotos();toast(`${added} photo${added>1?"s":""} saved on iPad`,1800);}
 }
 function renderPhotos(){
-  $("photoCount").textContent=cur.photos.length+" photo"+(cur.photos.length===1?"":"s");
-  $("thumbs").innerHTML=cur.photos.map((p,i)=>`<div class="thumb"><div class="img"><img src="${p.data}" alt="Site photo ${i+1}"><span class="n">${i+1}</span><button class="x" data-del="${p.id}" aria-label="Remove photo ${i+1}">×</button></div>
-    <div class="meta"><select data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
-    <input data-note="${p.id}" value="${esc(p.note)}" placeholder="Note (optional)" aria-label="Note for photo ${i+1}"></div></div>`).join("");
-  const find=id=>cur.photos.find(x=>x.id===id);
-  $("thumbs").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(!confirm("Remove this photo?"))return;cur.photos=cur.photos.filter(x=>x.id!==b.dataset.del);renderPhotos();save();});
-  $("thumbs").querySelectorAll("[data-tag]").forEach(s=>s.onchange=()=>{find(s.dataset.tag).tag=s.value;save();});
-  $("thumbs").querySelectorAll("[data-note]").forEach(s=>s.oninput=()=>{find(s.dataset.note).note=s.value;save();});
+  photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];
+  $("photoCount").textContent=`${photos.length} photo${photos.length===1?"":"s"}`;
+  const have=new Set(photos.map(p=>p.tag));
+  $("shots").innerHTML=SHOTS.map(s=>`<span class="shot ${have.has(s)?"got":""}">${have.has(s)?"✓ ":""}${s}</span>`).join("")+(J.type==="hospital"?`<span class="shot ${have.has("X-ray / lead room")?"got":""}">${have.has("X-ray / lead room")?"✓ ":""}X-ray / lead room</span>`:"");
+  $("thumbs").innerHTML=photos.map((p,i)=>{const u=URL.createObjectURL(p.blob);photoUrls.push(u);
+    return `<div class="thumb"><div class="img"><img src="${u}" alt="Photo ${i+1}"><span class="n">${i+1}</span><button class="x" data-del="${p.id}" aria-label="Remove photo ${i+1}">×</button></div>
+    <div class="meta"><select id="t_${p.id}" data-tag="${p.id}" aria-label="What photo ${i+1} shows">${TAGS.map(t=>`<option ${t===p.tag?"selected":""}>${t}</option>`).join("")}</select>
+    <input id="n_${p.id}" data-note="${p.id}" value="${esc(p.note)}" placeholder="Note" aria-label="Note for photo ${i+1}"></div></div>`;}).join("");
+  $("thumbs").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="?";b.setAttribute("aria-label","Tap again to remove");setTimeout(()=>{if(b.isConnected){b.dataset.armed="";b.textContent="×";}},2500);return;}
+    await delPhoto(b.dataset.del);photos=photos.filter(p=>p.id!==b.dataset.del);await saveNow();renderPhotos();});
+  $("thumbs").querySelectorAll("[data-tag]").forEach(s=>s.onchange=async()=>{const p=photos.find(x=>x.id===s.dataset.tag);p.tag=s.value;await putPhoto(p);await saveNow();renderPhotos();});
+  $("thumbs").querySelectorAll("[data-note]").forEach(s=>s.oninput=()=>{const p=photos.find(x=>x.id===s.dataset.note);p.note=s.value;clearTimeout(p._t);p._t=setTimeout(async()=>{const {_t,...rest}=p;await putPhoto(rest);await saveNow();},400);});
 }
 $("camIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
 $("libIn").onchange=e=>{addFiles([...e.target.files]);e.target.value="";};
+$("dockCam").onclick=()=>$("camIn").click();
+async function leaveJob(){await saveNow();J=null;photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls=[];$("vJob").hidden=true;$("dock").hidden=true;$("vList").hidden=false;scrollTo(0,0);renderList();}
+$("backBtn").onclick=leaveJob;$("dockDone").onclick=leaveJob;
+function resetDel(){$("delBox").innerHTML=`<button class="btn btn-danger" id="delBtn">Delete this job</button>`;$("delBtn").onclick=armDelete;}
+function armDelete(){
+  $("delBox").innerHTML=`<div class="confirm">Delete "${esc(J.name||"this site walk")}" and its ${photos.length} photos from this iPad? This can't be undone.<div class="row"><button class="btn btn-danger" id="delYes">Delete</button><button class="btn btn-ghost" id="delNo">Keep it</button></div></div>`;
+  $("delNo").onclick=resetDel;
+  $("delYes").onclick=async()=>{clearTimeout(saveT);for(const p of photos) await delPhoto(p.id);await delJob(J.id);J=null;resetDel();$("vJob").hidden=true;$("dock").hidden=true;$("vList").hidden=false;renderList();toast("Deleted");};
+}
+$("delBtn").onclick=armDelete;
 
-$("delBtn").onclick=async()=>{
-  if(!confirm(`Delete "${cur.name||"this site walk"}" and its ${cur.photos.length} photos from this iPad? This can't be undone.`))return;
-  clearTimeout(saveT); await delJob(cur.id); toast("Walk deleted"); showList();
-};
-$("newBtn").onclick=()=>openJob(null);
-$("backBtn").onclick=async()=>{clearTimeout(saveT);if(cur)await putJob(cur);showList();};
-
-/* ---------- export ---------- */
-function toExport(j){const {exportedAt,...rest}=j;return{...rest,structure:j.structure==="unknown"?"":j.structure,photos:j.photos.map(p=>({data:p.data,tag:p.tag,note:p.note,takenAt:p.takenAt}))};}
-$("exportBtn").onclick=async()=>{
-  const pick=jobs.filter(j=>selected.has(j.id)); if(!pick.length)return;
-  const payload={app:"field-walk",version:1,exportedAt:new Date().toISOString(),jobs:pick.map(toExport)};
-  const d=new Date(); const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
-  const name=`field-walk-${stamp}.json`;
-  const blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
-  const file=new File([blob],name,{type:"application/json"});
-  let done=false;
+/* ---------- send to estimator ---------- */
+function toDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
+async function buildBundle(list){
+  const out=[];
+  for(const j of list){
+    const ps=(await photosFor(j.id)).sort((a,b)=>a.takenAt-b.takenAt);
+    const photosOut=[];for(const p of ps) photosOut.push({tag:p.tag,note:p.note||"",takenAt:p.takenAt,w:p.w,h:p.h,data:await toDataURL(p.blob)});
+    const {sentAt,...job}=j; out.push({...job,photos:photosOut});
+  }
+  return {app:"field-walk",version:1,exportedAt:new Date().toISOString(),jobs:out};
+}
+$("sendBtn").onclick=async()=>{
+  const waiting=jobs.filter(j=>!j.sentAt||j.updatedAt>j.sentAt);if(!waiting.length) return;
+  $("sendBtn").disabled=true;$("sendOut").innerHTML=`<div class="busy" style="color:inherit"><span class="spin"></span>Packing ${waiting.length} job${waiting.length>1?"s":""}…</div>`;
+  let file;
   try{
-    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});done=true;}
-  }catch(e){ if(e&&e.name==="AbortError"){toast("Export cancelled");return;} }
-  if(!done){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);done=true;}
-  const t=Date.now(); for(const j of pick){j.exportedAt=t;await putJob(j);}
-  toast(`Exported ${pick.length} walk${pick.length>1?"s":""} (${(blob.size/1048576).toFixed(1)} MB). Open it in the Photo Estimator.`,5000);
-  loadList();
+    const bundle=await buildBundle(waiting);
+    const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,"").replace(/^(\d{8})(\d{4})$/,"$1-$2");
+    file=new File([JSON.stringify(bundle)],`field-walk-${stamp}.json`,{type:"application/json"});
+  }catch(e){$("sendOut").innerHTML=`<p>Couldn't pack the jobs. Try again.</p>`;$("sendBtn").disabled=false;return;}
+  const mb=(file.size/1048576).toFixed(1);
+  const markSent=async()=>{const now=Date.now();for(const j of waiting){j.sentAt=now;await putJob(j);}$("sendOut").innerHTML="";toast("Marked as sent. Now open the Photo Estimator and tap Import from field.",5000);renderList();};
+  const askDone=(how)=>{$("sendOut").innerHTML=`<div class="confirm" style="color:var(--warn)">${how} Did the file save?<div class="row"><button class="btn btn-gold" id="sentYes">Yes, mark as sent</button><button class="btn btn-ghost" id="sentNo">Not yet</button></div></div>`;
+    $("sentYes").onclick=markSent;$("sentNo").onclick=()=>{$("sendOut").innerHTML="";$("sendBtn").disabled=false;};};
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    $("sendOut").innerHTML=`<p class="fine" style="color:inherit;margin:0">Packed ${mb} MB. In the share sheet, pick <b>Save to Files</b> (or AirDrop it to your computer).</p>`;
+    try{await navigator.share({files:[file],title:"Field Walk jobs"});askDone("Shared.");}
+    catch(e){if(e&&e.name==="AbortError"){$("sendOut").innerHTML="";$("sendBtn").disabled=false;}else downloadFallback();}
+  } else downloadFallback();
+  function downloadFallback(){const u=URL.createObjectURL(file);const a=document.createElement("a");a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);askDone(`Downloaded ${file.name} (${mb} MB) to your Downloads folder.`);}
 };
 
 /* ---------- boot ---------- */
 (async()=>{
-  const standalone=window.navigator.standalone||matchMedia("(display-mode: standalone)").matches;
-  $("installTip").hidden=!!standalone||!/iPad|iPhone|Macintosh/.test(navigator.userAgent);
-  try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist();
-    if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e.usage!=null)$("storageNote").textContent=`Using ${(e.usage/1048576).toFixed(0)} MB on this iPad.`;}}catch(e){}
-  try{await loadList();}catch(e){$("list").innerHTML=`<div class="card empty">Storage isn't available. If this is a Private tab, open the page in a normal Safari tab.</div>`;}
-  if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+  netState();
+  try{DB=await openDB();}catch(e){$("jobs").innerHTML=`<p class="fine">This browser won't let the app store data. Open it from the home-screen icon, not a private tab.</p>`;return;}
+  try{if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist();}catch(e){}
+  renderList();
+  if("serviceWorker" in navigator){try{await navigator.serviceWorker.register("sw.js");}catch(e){}}
 })();
 </script>
 </body>
