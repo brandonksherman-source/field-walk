@@ -1,1 +1,0 @@
-"""Ahrens bid package helpers."""
