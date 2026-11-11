@@ -17,7 +17,13 @@ def band(max_floors: float) -> str:
     return "mid" if max_floors >= 4 else "low"
 
 
-def quantities(job: Job, rates) -> dict[str, float]:
+def round_half_up(x: float) -> float:
+    """Round like Excel's ROUND (halves away from zero), not Python's banker's rounding."""
+    return float(math.copysign(math.floor(abs(x) + 0.5), x))
+
+
+def base_quantities(job: Job) -> dict[str, float]:
+    """Areas and counts from the structures, with overrides applied, and gross SF derived from them."""
     S = job.structures
     q: dict[str, float] = {
         "above_grade_sf": sum(s.above_grade_sf for s in S),
@@ -28,8 +34,13 @@ def quantities(job: Job, rates) -> dict[str, float]:
         "trees": 0.0,
         "pre1980_bldgs": float(sum(1 for s in S if _year(s.year_built) is None or _year(s.year_built) < 1980)),
     }
-    q["gross_sf"] = q["above_grade_sf"] + q["basement_sf"]
-    q.update({k: v for k, v in job.quantities_override.items() if k in q})
+    q.update({k: float(v) for k, v in job.quantities_override.items() if k in q})
+    q["gross_sf"] = float(job.quantities_override.get("gross_sf", q["above_grade_sf"] + q["basement_sf"]))
+    return q
+
+
+def quantities(job: Job, rates) -> dict[str, float]:
+    q = base_quantities(job)
     q["debris_tons"] = q["gross_sf"] * rates["debris_t_per_sf"].value
     q["steel_tons"] = q["gross_sf"] * rates["steel_t_per_sf"].value
     q["haul_loads"] = float(math.ceil(round(q["debris_tons"] / rates["tons_per_load"].value, 6)))
@@ -39,7 +50,7 @@ def quantities(job: Job, rates) -> dict[str, float]:
     q["crew_days"] = float(math.ceil(round(q["gross_sf"] / rates[f"sf_per_crew_day_{band(q['max_floors'])}"].value, 6)))
     q["equipment_days"] = q["crew_days"]
     q["disposal_tons"] = q["debris_tons"] - q["steel_tons"]
-    q.update(job.quantities_override)
+    q.update({k: float(v) for k, v in job.quantities_override.items()})
     return q
 
 
@@ -56,7 +67,7 @@ def _common_lines(job: Job, rates, q) -> list[tuple[str, str, float, str, float,
     out = [
         ("mobilization", "Mobilization", 1, "LS", *mob, "1"),
         ("permits", "Demolition permits", q["buildings"], "EA", *_r(rates, "permit_per_bldg"), "q:buildings"),
-        ("fencing", "Construction fence & protection", round(q["fence_lf"]), "LF", *_r(rates, "fencing_lf"), "round:fence_lf"),
+        ("fencing", "Construction fence & protection", round_half_up(q["fence_lf"]), "LF", *_r(rates, "fencing_lf"), "round:fence_lf"),
         ("utilities", "Utility disconnects / cut & cap (E, G, W, S)", q["buildings"], "bldg", *util, "q:buildings"),
         ("tap_destroys", "Tap destroys", q["buildings"], "EA", *_r(rates, "tap_destroy"), "q:buildings"),
         ("hazmat", "Hazmat survey (NESHAP)", q["buildings"], "bldg", *_r(rates, "hazmat_survey_per_bldg"), "q:buildings"),
@@ -94,7 +105,7 @@ def _finish(method: str, job: Job, rates, raw) -> PriceResult:
         amt = running * rates[k].value
         markups[k] = amt
         running += amt
-    total, warning = float(round(running)), None
+    total, warning = round_half_up(running), None
     if total < 0:
         total, warning = 0.0, "Price below zero – check scrap credit and switches"
     return PriceResult(method, lines, direct, markups, total, warning)

@@ -85,6 +85,37 @@ def cmd_build(job_json: Path, root: Path, rates_path: Path) -> Path:
     return folder
 
 
+def cmd_rebuild(folder: Path, rates_path: Path) -> Path:
+    """After review: read Include? switches and Price to send from the workbook, redo the letter to match."""
+    import openpyxl
+    from .scope import SCOPE_LINES
+    folder = Path(folder)
+    job = Job.from_dict(json.loads((folder / "job.json").read_text()))
+    stem = safe_name(job.project)
+    wbp = folder / f"{stem} - Takeoff.xlsx"
+    ws = openpyxl.load_workbook(wbp)["Crew & Time"]
+    for r in range(6, ws.max_row + 1):
+        key, v = ws.cell(r, 8).value, ws.cell(r, 1).value
+        if key in SCOPE_LINES and isinstance(v, str) and v.strip().upper() in ("Y", "N"):
+            job.switches[key] = v.strip().upper() == "Y"
+    errs = recalc(wbp)
+    if errs:
+        raise SystemExit(f"Workbook formula errors: {errs}")
+    summ = openpyxl.load_workbook(wbp, data_only=True)["Summary"]
+    vals = {summ.cell(r, 1).value: summ.cell(r, 2).value for r in range(1, summ.max_row + 1)}
+    sent = vals.get("Price to send")
+    price = float(sent) if isinstance(sent, (int, float)) and sent > 0 else float(vals["Crew & time price"])
+    render_letter(job, price, folder)
+    (folder / "job.json").write_text(json.dumps(job.to_dict(), indent=1))
+    off = [k for k, v in job.switches.items() if not v]
+    with open(folder / f"{stem} - Bid Intel.md", "a", encoding="utf-8") as f:
+        f.write(f"\n## Revised {date.today():%m/%d/%Y}\n\n- Letter re-issued at ${price:,.2f}"
+                f"{' (Price to send)' if price == sent else ' (workbook crew & time price)'}\n"
+                f"- Switched off: {', '.join(off) if off else 'none'}\n")
+    print(folder)
+    return folder
+
+
 def cmd_stop(reason: str, root: Path, client: str, project: str) -> Path:
     folder = job_folder(root, date.today(), client, project)
     note = folder / f"STOPPED – {safe_name(reason)}.md"
@@ -100,6 +131,8 @@ def main(argv=None) -> int:
     p = sub.add_parser("init"); p.add_argument("--root", type=Path, required=True)
     p = sub.add_parser("build"); p.add_argument("job_json", type=Path)
     p.add_argument("--root", type=Path, required=True); p.add_argument("--rates", type=Path, required=True)
+    p = sub.add_parser("rebuild"); p.add_argument("folder", type=Path)
+    p.add_argument("--root", type=Path, required=True); p.add_argument("--rates", type=Path, required=True)
     p = sub.add_parser("stop"); p.add_argument("reason"); p.add_argument("--root", type=Path, required=True)
     p.add_argument("--client", default="Unknown"); p.add_argument("--project", default="Unidentified")
     p = sub.add_parser("calibrate"); p.add_argument("csv", type=Path)
@@ -109,6 +142,8 @@ def main(argv=None) -> int:
         cmd_init(a.root)
     elif a.cmd == "build":
         cmd_build(a.job_json, a.root, a.rates)
+    elif a.cmd == "rebuild":
+        cmd_rebuild(a.folder, a.rates)
     elif a.cmd == "stop":
         cmd_stop(a.reason, a.root, a.client, a.project)
     elif a.cmd == "calibrate":

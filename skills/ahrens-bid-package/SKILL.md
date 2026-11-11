@@ -78,7 +78,7 @@ Preservation Board review). Cite every source.
 ## 5. Write `job.json` and build
 
 Full scope by default: leave `switches` empty (everything on, scrap credit to Ahrens). Turn a line off only when
-the request says the customer handles it (e.g. owner keeps salvage → `"scrap_credit": false`). Keys:
+the request says the customer handles it (e.g. owner keeps salvage → `"scrap_credit": false`; use true/false). Keys:
 `mobilization, permits, fencing, utilities, tap_destroys, hazmat, demolition, haul, disposal, scrap_credit,
 backfill, seed_straw, trees, swppp`.
 
@@ -133,6 +133,20 @@ Briefly:
 - The 3–5 biggest risks or gaps
 - How many rates are still placeholders
 - The Drive folder link, and sources at the end
+
+## After the team reviews (rebuild the letter)
+
+Reviewers change the workbook, not the letter: they flip `Include?` cells on Crew & Time, edit floors or areas, or
+enter **Price to send** on the Summary tab. When asked to update a job ("rebuild the Wells Fargo letter"): download
+the job folder's `Takeoff.xlsx` and `job.json` into a local folder, run
+
+```bash
+python3 -m bidpkg.cli rebuild "<local job folder>" --root "$W" --rates "$W/Ahrens Rate Card.xlsx"
+```
+
+then upload the new `Proposal.docx`/`.pdf`, `job.json` and `Bid Intel.md` (upload new, trash old, same
+`modifiedTime` rule). The letter takes Price to send if it's filled in, otherwise the workbook's recalculated crew &
+time price, and its Included/Exclusions follow the workbook's switches. Rebuild never adds a Bid Log row.
 
 ## Calibrate from past estimates
 

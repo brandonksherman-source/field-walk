@@ -30,6 +30,7 @@ DISCLAIMER = ("This proposal is contingent upon and shall not be binding or vali
               "and until this contingency is satisfied.")
 DRAFT = "DRAFT – for review"
 FONT = "Calibri"
+HONORIFICS = {"mr", "mrs", "ms", "miss", "dr", "mx", "prof"}
 
 
 def _para(container, text="", bold=False, underline=False, size=11, align=None, space_after=8, color=None,
@@ -117,9 +118,11 @@ def build_docx(job: Job, lump_sum: float, path: Path) -> Path:
     sec.header_distance, sec.footer_distance = Inches(0.4), Inches(0.4)
     _letterhead(sec)
 
-    first = (job.recipient or "").split()[0] if job.recipient else None
+    rec = (job.recipient or "").strip() or None
+    names = [w for w in (rec or "").split() if w.rstrip(".").lower() not in HONORIFICS]
+    first = names[0] if names else None
     _para(doc, f"{job.date:%B} {job.date.day}, {job.date.year}", space_after=14)
-    _mixed(doc, [("To: ", False), (job.recipient or "[RECIPIENT]", job.recipient is None)], space_after=14)
+    _mixed(doc, [("To: ", False), (rec or "[RECIPIENT]", rec is None)], space_after=14)
     _para(doc, f"RE: {job.project} Demo", space_after=14)
     _mixed(doc, [("Dear ", False), (first or "[FIRST NAME]", first is None), (",", False)], space_after=14)
     _para(doc, OPENING, space_after=14)

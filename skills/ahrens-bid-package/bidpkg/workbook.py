@@ -32,6 +32,14 @@ NUM = "#,##0"
 NUM2 = "#,##0.00##"
 
 
+class Text(str):
+    """User-supplied text: written as a string even if it starts with '='."""
+
+
+def _t(v):
+    return Text(v) if isinstance(v, str) else v
+
+
 def _q(name: str) -> str:
     return "'" + name.replace("'", "''") + "'"
 
@@ -53,6 +61,8 @@ def _row(ws, r: int, values, fonts=None, formats=None) -> None:
         if v is None:
             continue
         c = ws.cell(r, i, v)
+        if isinstance(v, Text):
+            c.data_type = "s"
         c.font = (fonts or {}).get(i, F_BLACK)
         if formats and i in formats:
             c.number_format = formats[i]
@@ -73,10 +83,10 @@ def _sf_takeoff(wb, job: Job) -> dict:
     first = 6
     r = first
     for s in job.structures:
-        _row(ws, r, [s.name, f"{s.address} · {s.parcel}".strip(" ·"), s.footprint_sf, s.floors,
+        _row(ws, r, [_t(s.name), _t(f"{s.address} · {s.parcel}".strip(" ·")), s.footprint_sf, s.floors,
                      s.published_gsf if s.published_gsf else None,
-                     f'=IF(E{r}<>"",E{r},C{r}*D{r})', s.basement_sf, f"=F{r}+G{r}", s.year_built, s.owner, s.note,
-                     s.source],
+                     f'=IF(E{r}<>"",E{r},C{r}*D{r})', s.basement_sf, f"=F{r}+G{r}", _t(s.year_built), _t(s.owner), _t(s.note),
+                     _t(s.source)],
              {3: F_BLUE, 4: F_BLUE, 5: F_BLUE, 7: F_BLUE},
              {3: NUM, 4: "0.0", 5: NUM, 6: NUM, 7: NUM, 8: NUM})
         ws.cell(r, 3).fill = YELLOW
@@ -91,7 +101,7 @@ def _sf_takeoff(wb, job: Job) -> dict:
     ws.cell(rr, 1, "STRUCTURES TO REMAIN / PROTECT (not in quote)").font = F_BOLD
     for item in job.to_remain:
         rr += 1
-        ws.cell(rr, 1, item).font = F_BLACK
+        _row(ws, rr, [_t(item)])
     _widths(ws, [30, 34, 14, 8, 14, 16, 13, 15, 11, 30, 50, 40])
     ws.freeze_panes = "A6"
     return {"first": first, "last": last, "tot": tot}
@@ -103,7 +113,8 @@ def _quantity_rows(job, rates, q, sf):
     S = _q("SF Takeoff")
     b = band(q["max_floors"])
     return [
-        ("gross_sf", "Total gross SF (incl. basements)", "SF", f"={S}!H{t}", None, "Link"),
+        ("gross_sf", "Total gross SF (incl. basements)", "SF", "=B{above_grade_sf}+B{basement_sf}", None,
+         "Above-grade + basement"),
         ("above_grade_sf", "Above-grade gross SF", "SF", f"={S}!F{t}", None, "Link"),
         ("basement_sf", "Basement SF", "SF", f"={S}!G{t}", None, "Link"),
         ("footprint_sf", "Footprint total", "SF", f"={S}!C{t}", None, "Link"),
@@ -167,7 +178,8 @@ def _pricing_sheet(wb, tab: str, job: Job, res: PriceResult, rates, qrows, inclu
     """Writes a pricing sheet. include_cells=None → this sheet owns the switches; returns key → cell address."""
     ws = wb.create_sheet(tab)
     _header(ws, tab, job)
-    ws["A4"] = "Include? Y/N on Crew & Time switches a scope line for BOTH prices and moves it to the letter's Exclusions."
+    ws["A4"] = ("Include? Y/N on Crew & Time switches a scope line for BOTH prices. After changing switches or "
+                "Summary › Price to send, run `bidpkg.cli rebuild` so the letter matches.")
     ws["A4"].font = F_BLACK
     _row(ws, 5, ["Include?", "Line", "Qty", "Unit", "Unit rate ($)", "Extended ($)", "Rate source", "Key"],
          {i: F_BOLD for i in range(1, 9)})
@@ -207,12 +219,13 @@ def _pricing_sheet(wb, tab: str, job: Job, res: PriceResult, rates, qrows, inclu
     total = rr + 1
     _row(ws, total, [None, "BASE BID (lump sum)", None, None, None,
                      f"=MAX(0,ROUND({'+'.join(running_terms)},0))"], {2: F_BOLD, 6: F_BOLD}, {6: MONEY})
+    raw = "+".join(f"{_q(tab)}!{t}" for t in running_terms)
     _row(ws, total + 1, [None, "Base bid with bond (if required)", None, "%", rates["bond_pct"].value,
                          f"=ROUND(F{total}*(1+E{total + 1}),0)"], {5: F_BLUE}, {5: "0.0%", 6: MONEY})
     ws.column_dimensions["H"].hidden = True
     _widths(ws, [9, 50, 13, 9, 14, 15, 55, 14])
     ws.freeze_panes = "A6"
-    return owned, total
+    return owned, total, raw
 
 
 def rates_label(k: str) -> str:
@@ -228,7 +241,7 @@ def _checklist(wb, job: Job) -> None:
     ws.add_data_validation(dv)
     r = 6
     for item, detail, prio in job.questions:
-        _row(ws, r, [item, detail, prio, "No"], {4: F_BLUE})
+        _row(ws, r, [_t(item), _t(detail), _t(prio), "No"], {4: F_BLUE})
         dv.add(f"D{r}")
         r += 1
     _widths(ws, [44, 90, 10, 10])
@@ -241,7 +254,7 @@ def _sources(wb, job: Job, rates) -> None:
     ws.cell(r, 1, "Sources").font = F_BOLD
     for s in job.sources:
         r += 1
-        ws.cell(r, 1, s).font = F_BLACK
+        _row(ws, r, [_t(s)])
     r += 2
     ws.cell(r, 1, "Placeholder rates used (replace in Ahrens Rate Card.xlsx)").font = F_BOLD
     for k, v in rates.items():
@@ -251,7 +264,8 @@ def _sources(wb, job: Job, rates) -> None:
     ws.column_dimensions["A"].width = 120
 
 
-def _summary(wb, job: Job, ct_total: int, sf_total: int, crew: PriceResult, persf: PriceResult) -> None:
+def _summary(wb, job: Job, ct_total: int, sf_total: int, crew: PriceResult, persf: PriceResult,
+             ct_raw: str, sf_raw: str) -> None:
     ws = wb["Summary"]
     _header(ws, "Summary", job)
     CT, SF, SFT, BC = _q("Crew & Time"), _q("$-SF Check"), _q("SF Takeoff"), _q("Bid Checklist")
@@ -264,6 +278,9 @@ def _summary(wb, job: Job, ct_total: int, sf_total: int, crew: PriceResult, pers
         ("Price to send", None, F_BLUE, MONEY),
         ("Open questions", f'=COUNTIF({BC}!D:D,"No")' + (f'+COUNTBLANK({BC}!D6:D{5 + len(job.questions)})'
                                                           if job.questions else ""), F_GREEN, NUM),
+        ("Price check", f'=IF(OR(ROUND({ct_raw},0)<0,ROUND({sf_raw},0)<0),'
+                        f'"PRICE FLOORED AT $0 – check scrap credit and switches","")',
+         Font(name="Arial", color="C00000", bold=True), "General"),
     ]
     for i, (label, val, font, fmt) in enumerate(rows, 6):
         ws.cell(i, 1, label).font = F_BOLD
@@ -271,7 +288,7 @@ def _summary(wb, job: Job, ct_total: int, sf_total: int, crew: PriceResult, pers
         c.font, c.number_format = font, fmt
     ws["B11"].fill = YELLOW
     ws["C11"] = "Reviewer: enter the number that goes on the letter"
-    r = 14
+    r = 15
     warnings = [w for w in (crew.warning, persf.warning) if w]
     if warnings:
         ws.cell(r, 1, "WARNINGS").font = F_BOLD
@@ -282,7 +299,7 @@ def _summary(wb, job: Job, ct_total: int, sf_total: int, crew: PriceResult, pers
     ws.cell(r, 1, "Top risks / gaps").font = F_BOLD
     for risk in job.risks:
         r += 1
-        ws.cell(r, 1, f"• {risk}").font = F_BLACK
+        _row(ws, r, [_t(f"• {risk}")])
     _widths(ws, [40, 18, 50])
 
 
@@ -293,11 +310,11 @@ def write_workbook(job: Job, rates, path: Path) -> None:
     wb.active.title = "Summary"
     sf = _sf_takeoff(wb, job)
     qrows = _quantities(wb, job, rates, q, sf)
-    owned, ct_total = _pricing_sheet(wb, "Crew & Time", job, crew, rates, qrows, None)
-    _, sf_total = _pricing_sheet(wb, "$-SF Check", job, persf, rates, qrows, owned)
+    owned, ct_total, ct_raw = _pricing_sheet(wb, "Crew & Time", job, crew, rates, qrows, None)
+    _, sf_total, sf_raw = _pricing_sheet(wb, "$-SF Check", job, persf, rates, qrows, owned)
     _checklist(wb, job)
     _sources(wb, job, rates)
-    _summary(wb, job, ct_total, sf_total, crew, persf)
+    _summary(wb, job, ct_total, sf_total, crew, persf, ct_raw, sf_raw)
     wb.save(path)
 
 

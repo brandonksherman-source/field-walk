@@ -4,6 +4,7 @@ from pathlib import Path
 import openpyxl
 from openpyxl.styles import Font, PatternFill
 from .models import Job, PriceResult
+from .pricing import base_quantities
 
 COLUMNS = ["Date", "Client", "Project", "Address", "Gross SF", "Crew & time price", "$/SF price", "Price sent",
            "Won/Lost", "Actual cost", "Folder"]
@@ -27,11 +28,13 @@ def append_job(log_path: Path, job: Job, crew: PriceResult, per_sf: PriceResult,
         create_log(log_path)
     wb = openpyxl.load_workbook(log_path); ws = wb.active
     r = ws.max_row + 1
-    gross = sum(s.gross_sf for s in job.structures)
+    gross = base_quantities(job)["gross_sf"]
     vals = [job.date, job.client, job.project, job.address, gross, crew.total, per_sf.total, None, None, None,
             str(folder)]
     for i, v in enumerate(vals, 1):
         c = ws.cell(r, i, v)
+        if isinstance(v, str):
+            c.data_type = "s"   # never let a name starting with "=" become a formula
         c.font = Font(name="Arial")
     ws.cell(r, 1).number_format = "yyyy-mm-dd"
     for i in (5,):
