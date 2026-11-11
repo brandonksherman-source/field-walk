@@ -76,6 +76,7 @@ class Line:
     extended: float
     included: bool
     rate_source: str
+    qty_ref: str = ""  # how the workbook derives qty: "q:<quantity key>", "round:<key>" or a constant
 
 
 @dataclass
