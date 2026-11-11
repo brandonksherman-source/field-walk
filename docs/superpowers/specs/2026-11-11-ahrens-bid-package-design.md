@@ -139,8 +139,9 @@ A fixed `.docx` template matching the Building 121/123 letter:
 - **Items Included:** (underlined heading), bullets (variable)
 - **LUMP SUM: $X** (bold, right-aligned)
 - **Exclusions:** standard list (below), adjusted per job
-- "If you have any questions, please contact us at 314-631-7799." · "Best Regards," · signature · Roger Kent, VP
-  of Operations, Ahrens Contracting, Inc. · the subcontract-terms disclaimer paragraph in small print.
+- "If you have any questions, please contact us at 314-631-7799." · "Best Regards," · blank space for
+  the sender to sign and add their name at review (no signature and no name on drafts, per Brandon) · "Ahrens
+  Contracting, Inc." · the subcontract-terms disclaimer paragraph in small print.
 
 Exclusions are built per job:
 - **Switched-off scope lines**, worded the way the 121/123 letter words them (e.g. "Tipping or disposal fees (paid
@@ -151,7 +152,7 @@ Exclusions are built per job:
   with an additional charge for labor and/or equipment beyond those hours. (Claude's call on which items are
   conditions rather than scope; Brandon can move any of them.)
 
-Variable fields: date, recipient name, first name, RE line, included bullets, lump sum, exclusion edits, signer.
+Variable fields: date, recipient name, first name, RE line, included bullets, lump sum, exclusion edits.
 
 ### 4. The rate card
 
@@ -174,12 +175,15 @@ estimators.
 
 ## Decisions made by Claude (Brandon can override)
 
-- Letter defaults to Roger Kent as signer; recipient comes from the request, otherwise left as a highlighted blank.
+- Recipient comes from the request, otherwise left as a highlighted blank. The company line under the blank
+  signature space stays (it isn't a person's name).
 - The letter is priced at the crew-and-time number by default; the $/SF number is a check.
 - Queue = folders: `1 - Ready for Review`, `2 - Sent`, `3 - Passed`. The team moves the folder when done.
 - The skill is written as files in this repo (`skills/ahrens-bid-package/`) so it's versioned; Brandon uploads it
   to his Claude account skills to use it. It replaces `bid-takeoff` once it's working.
 - The Ahrens logo is needed as an image file for the letterhead (taken from an existing proposal PDF or supplied).
+- Until the original 121/123 file arrives, the template is rebuilt from Brandon's screenshots of it; the real file
+  replaces it when supplied.
 
 - **Where it runs:** a Claude Code cloud session (this environment). It has Python for the .xlsx/.docx/.pdf work,
   direct access to OSM and the city parcel service, and the Gmail and Drive connectors. On-demand runs start from a
