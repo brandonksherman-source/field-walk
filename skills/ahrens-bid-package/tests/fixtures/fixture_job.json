@@ -1,0 +1,42 @@
+{
+ "project": "Fixture Bldg",
+ "client": "Acme Dev",
+ "recipient": "Bruce Byrd",
+ "address": "100 Test St, St. Louis, MO",
+ "date": "2026-11-11",
+ "building_type": "masonry",
+ "structures": [
+  {
+   "name": "Main",
+   "address": "100 Test St",
+   "parcel": "123",
+   "footprint_sf": 10000,
+   "floors": 2,
+   "basement_sf": 0,
+   "year_built": "1950",
+   "owner": "Acme",
+   "note": "2-story brick",
+   "source": "OSM way 1"
+  }
+ ],
+ "to_remain": [
+  "Neighbor garage"
+ ],
+ "switches": {},
+ "quantities_override": {},
+ "questions": [
+  [
+   "Bid date",
+   "Not given",
+   "HIGH"
+  ]
+ ],
+ "sources": [
+  "OSM way 1"
+ ],
+ "included_bullets_extra": [],
+ "due_date": null,
+ "risks": [
+  "No hazmat survey provided"
+ ]
+}

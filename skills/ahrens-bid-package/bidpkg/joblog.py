@@ -10,18 +10,22 @@ COLUMNS = ["Date", "Client", "Project", "Address", "Gross SF", "Crew & time pric
 YELLOW = PatternFill("solid", fgColor="FFFF00")
 
 
+def create_log(log_path: Path) -> None:
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Bids"
+    ws.append(COLUMNS)
+    for c in ws[1]:
+        c.font = Font(name="Arial", bold=True)
+    for col, w in zip("ABCDEFGHIJK", (12, 22, 34, 40, 12, 16, 14, 14, 10, 14, 60)):
+        ws.column_dimensions[col].width = w
+    ws.freeze_panes = "A2"
+    wb.save(log_path)
+
+
 def append_job(log_path: Path, job: Job, crew: PriceResult, per_sf: PriceResult, folder: Path) -> int:
     log_path = Path(log_path)
-    if log_path.exists():
-        wb = openpyxl.load_workbook(log_path); ws = wb.active
-    else:
-        wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Bids"
-        ws.append(COLUMNS)
-        for c in ws[1]:
-            c.font = Font(name="Arial", bold=True)
-        for col, w in zip("ABCDEFGHIJK", (12, 22, 34, 40, 12, 16, 14, 14, 10, 14, 60)):
-            ws.column_dimensions[col].width = w
-        ws.freeze_panes = "A2"
+    if not log_path.exists():
+        create_log(log_path)
+    wb = openpyxl.load_workbook(log_path); ws = wb.active
     r = ws.max_row + 1
     gross = sum(s.gross_sf for s in job.structures)
     vals = [job.date, job.client, job.project, job.address, gross, crew.total, per_sf.total, None, None, None,
