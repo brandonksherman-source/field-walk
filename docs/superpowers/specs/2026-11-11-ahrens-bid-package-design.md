@@ -40,8 +40,8 @@ design once Part 1 produces packages the team accepts.
 ## Anti-goals (would be a failure even if it "works")
 
 - A letter that looks different from job to job, or doesn't look like the 121/123 letter.
-- Pricing scope that the standard letter excludes (the Wells Fargo workbook priced disposal, backfill, fencing and a
-  hazmat allowance, which the Ahrens letter normally excludes).
+- A price and a letter that disagree: a scope line switched off in the workbook but still in the lump sum, or
+  switched on but still listed under Exclusions.
 - Presenting a placeholder rate or an estimated floor count as measured or quoted.
 - Locking the files into Google Drive in a way that's hard to move off later.
 
@@ -91,11 +91,26 @@ answers), as Rev 1 of Wells Fargo was revised from site photos.
 5. **Quantities:** debris tons, steel scrap tons, haul loads, crew-days and equipment-days, each formula with its
    input in a blue cell and its assumption written beside it.
 6. **Price both ways** (see Rate card), apply markups, show the two totals and the difference.
-7. **Scope bullets and exclusions:** write the "Items Included" bullets for this job. Start from the standard
-   exclusion list and remove an exclusion only when the job's scope explicitly includes that work.
+7. **Scope bullets and exclusions:** generated from the scope switches (see Full-scope pricing). Every line that
+   is on becomes an "Items Included" bullet; every line that is off moves to "Exclusions". The fixed conditions
+   (below) are always listed as exclusions.
 8. **Open questions checklist** for the client (bid date, scope boundaries, basements, hazmat survey, utilities,
    occupancy, permits).
 9. **Write outputs** and **log the job** (below).
+
+### Full-scope pricing (Brandon, 11/11)
+
+Every job is bid as if Ahrens does **all** of it, and the lump sum includes all of it:
+demolition and loading, trucking/haul, tipping/disposal, utility disconnects and cut-and-caps (electric, gas,
+water, sewer), tap destroys, hazmat (survey, abatement, universal waste such as bulbs/ballasts/Freon), fencing and
+protection, backfill, seed/straw and site restoration, tree/stump removal where trees are found, permits, SWPPP.
+
+**Scrap credit goes to Ahrens by default** and is subtracted from the price. It's a per-job switch, because on some
+jobs the salvage goes to the owner.
+
+Each scope line in the workbook has an **Include? (Y/N)** switch, default Y. Setting a line to N zeroes it in both
+prices and moves it to the letter's Exclusions, so the reviewer changes one cell when a customer wants something
+handled differently.
 
 ### 2. Outputs, per job
 
@@ -127,12 +142,14 @@ A fixed `.docx` template matching the Building 121/123 letter:
 - "If you have any questions, please contact us at 314-631-7799." · "Best Regards," · signature · Roger Kent, VP
   of Operations, Ahrens Contracting, Inc. · the subcontract-terms disclaimer paragraph in small print.
 
-Standard exclusions (from the 121/123 letter): all environmental work (asbestos abatement, Freon evacuation,
-bulbs/ballasts, household hazardous waste, environmental surveys, hazardous and special waste); electrical or
-mechanical isolations or re-routes; tap destroys (if required); tipping or disposal fees; SWPP maintenance and
-reports after demolition is complete; site fencing and/or security; seed/straw and site restoration; backfill;
-pavement repair or damage; permitting beyond our work; additional cost for "wet demolition"; work outside 7–3:30
-at additional charge; removal of trees and/or stumps.
+Exclusions are built per job:
+- **Switched-off scope lines**, worded the way the 121/123 letter words them (e.g. "Tipping or disposal fees (paid
+  by owner)", "All salvage generated (paid to owner)", "All environmental work, including, but not limited to:
+  asbestos abatement, Freon evacuation, bulbs/ballasts, …").
+- **Fixed conditions, always listed:** SWPP maintenance and reports after demolition is complete; pavement repair or
+  damage; permitting beyond our work; additional cost for "wet demolition"; all work to be completed during 7–3:30,
+  with an additional charge for labor and/or equipment beyond those hours. (Claude's call on which items are
+  conditions rather than scope; Brandon can move any of them.)
 
 Variable fields: date, recipient name, first name, RE line, included bullets, lump sum, exclusion edits, signer.
 
@@ -140,7 +157,9 @@ Variable fields: date, recipient name, first name, RE line, included bullets, lu
 
 `Ahrens Bids/Ahrens Rate Card.xlsx`: one sheet the skill reads every run. Sections: crew day rates (operator,
 laborer, foreman, driver), equipment day rates (excavator sizes, high-reach, skid steer, loader, trucks),
-haul ($/load, tons/load), disposal ($/ton by material), scrap credit ($/ton), $/SF demo rates by building type,
+haul ($/load, tons/load), disposal ($/ton by material), scrap credit ($/ton by metal), utility disconnects and
+cut-and-caps (each), tap destroys, hazmat (survey per building, abatement and universal-waste allowances),
+fencing, backfill and compaction, seed/straw ($/SF or acre), tree/stump removal, $/SF demo rates by building type,
 mobilization, permits, markups (overhead, profit, contingency, bond, prevailing-wage uplift).
 
 Seeded with the `bid-takeoff` placeholder rates, in yellow and labeled placeholder. When Brandon finds the Excel
