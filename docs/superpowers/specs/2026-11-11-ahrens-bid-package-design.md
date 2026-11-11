@@ -1,6 +1,6 @@
 # Ahrens Bid Package — Design (Part 1 of the bid automation)
 
-Date: 2026-11-11 · Owner: Brandon Sherman (estimating, Ahrens Contracting) · Status: draft for approval
+Date: 2026-11-11 · Owner: Brandon Sherman (estimating, Ahrens Contracting) · Status: approved by Brandon 11/11/2026
 
 ## Why
 
@@ -165,6 +165,16 @@ mobilization, permits, markups (overhead, profit, contingency, bond, prevailing-
 
 Seeded with the `bid-takeoff` placeholder rates, in yellow and labeled placeholder. When Brandon finds the Excel
 or Sage numbers (a Sage report exported to Excel works), they replace the yellow cells; nothing in the skill changes.
+
+### 4a. Learning from past estimates (added 11/11, before the rate card is filled)
+
+Brandon uploads past Ahrens estimates to `Ahrens Bids/Past Estimates/` (letters, worksheets, Sage printouts, photos;
+as-is). For each job: read the lump sum, scope and exclusions; find and measure the building (gross SF, floors,
+construction type); note won/lost and actual cost where given. From the set, derive Ahrens' own rates ($/SF by
+building type, crew-weeks vs. size, implied markup) and replace the matching placeholders in the rate card, citing
+the jobs each number came from. Also collect Ahrens' wording for scope bullets and exclusions by job type, and take
+the exact letter template from any Word file in the set. Jobs that can't be located get flagged, not guessed. The
+analysis is saved as `Ahrens Bids/Past Estimates/Calibration.xlsx` so it can be rerun as more jobs are added.
 
 ### 5. The job log
 
