@@ -28,7 +28,7 @@ def test_scrap_credit_is_negative(job, rates):
 
 def test_per_sf_demolition(job, rates):
     (d,) = lines(price_per_sf(job, rates), "demolition")
-    assert d.extended == pytest.approx(20000*7.50)
+    assert d.extended == pytest.approx(20000*3.50)
 
 def test_crew_time_demolition(job, rates):
     ext = sum(l.extended for l in lines(price_crew_time(job, rates), "demolition"))

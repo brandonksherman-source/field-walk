@@ -126,3 +126,91 @@ def photo_gps(path: Path) -> tuple[float, float] | None:
     if not gps or 2 not in gps or 4 not in gps:
         return None
     return _deg(gps[2], gps.get(1, "N")), _deg(gps[4], gps.get(3, "E"))
+
+
+# ---- clipping a campus outline to one parcel -------------------------------------------------------------------
+from shapely.geometry import Polygon, MultiPolygon
+import numpy as np
+import shapely
+from shapely.ops import unary_union
+
+
+def _stitch(ways: list[list[int]]) -> list[list[int]]:
+    """Join OSM ways that share end nodes into closed rings."""
+    pending = [list(w) for w in ways if len(w) > 1]
+    rings = []
+    while pending:
+        ring = pending.pop(0)
+        while ring[0] != ring[-1]:
+            for i, w in enumerate(pending):
+                if w[0] == ring[-1]:
+                    ring += w[1:]
+                elif w[-1] == ring[-1]:
+                    ring += w[::-1][1:]
+                else:
+                    continue
+                pending.pop(i)
+                break
+            else:
+                break   # open ring: give up on it
+        if ring[0] == ring[-1] and len(ring) >= 4:
+            rings.append(ring)
+    return rings
+
+
+def _as_geom(shape):
+    if hasattr(shape, "geom_type"):
+        return shape
+    return unary_union([Polygon(r) for r in shape if len(r) >= 3]).buffer(0)
+
+
+def osm_polygon(osm_type: str, osm_id: int):
+    """The building outline (outer minus inner rings) as a shapely geometry in lon/lat."""
+    els = _get_json(f"{OSM}/{osm_type}/{osm_id}/full.json")["elements"]
+    nodes, ways = _index(els)
+    pt = lambda n: (nodes[n]["lon"], nodes[n]["lat"])
+    if osm_type == "way":
+        return Polygon([pt(n) for n in ways[osm_id]["nodes"]]).buffer(0)
+    rel = next(e for e in els if e["type"] == "relation" and e["id"] == osm_id)
+    def rings(role):
+        ws = [ways[m["ref"]]["nodes"] for m in rel["members"]
+              if m["type"] == "way" and m["ref"] in ways and (m.get("role") or "outer") == role]
+        return [Polygon([pt(n) for n in r]).buffer(0) for r in _stitch(ws)]
+    outer, inner = unary_union(rings("outer")), unary_union(rings("inner"))
+    return outer.difference(inner) if not inner.is_empty else outer
+
+
+def stl_parcel_polygon(handle: str):
+    """A City of St. Louis parcel (by HANDLE) as a shapely geometry in lon/lat."""
+    q = {"f": "json", "where": f"HANDLE='{handle}'", "outFields": "HANDLE", "returnGeometry": "true", "outSR": 4326}
+    feats = _get_json(STL_PARCELS + "?" + urllib.parse.urlencode(q)).get("features", [])
+    if not feats:
+        return Polygon()
+    return unary_union([Polygon(r) for f in feats for r in f["geometry"]["rings"]]).buffer(0)
+
+
+def clipped_area_sf(subject, clip) -> float:
+    """Square feet of `subject` inside `clip` (each a shapely geometry or a list of (lon, lat) rings)."""
+    a, b = _as_geom(subject), _as_geom(clip)
+    inter = a.intersection(b)
+    if inter.is_empty:
+        return 0.0
+    lat0 = math.radians(inter.centroid.y)
+    k = np.array([math.pi / 180 * R * math.cos(lat0), math.pi / 180 * R])
+    return shapely.transform(inter, lambda c: c * k).area * SQM_TO_SQFT
+
+
+def stacked_gross_sf(parts) -> dict:
+    """Gross SF from OSM building parts, floor by floor, so nested tiers aren't double counted.
+
+    parts: iterable of (geometry or rings, levels, min_level). Returns gross_sf, footprint_sf, max_floors and
+    floor_areas (SF per floor, ground floor first).
+    """
+    parts = [(_as_geom(g), int(float(lv)), int(float(mn or 0))) for g, lv, mn in parts]
+    top = max((lv for _, lv, _ in parts), default=0)
+    floors = []
+    for f in range(top):
+        on = [g for g, lv, mn in parts if mn <= f < lv]
+        floors.append(clipped_area_sf(unary_union(on), unary_union(on)) if on else 0.0)
+    return {"gross_sf": sum(floors), "footprint_sf": floors[0] if floors else 0.0, "max_floors": top,
+            "floor_areas": floors}

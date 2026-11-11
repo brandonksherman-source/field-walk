@@ -28,3 +28,9 @@ def test_text_rate_names_the_cell(tmp_path):
     ws.cell(5,4).value = "call Bob"; wb.save(p)
     with pytest.raises(RateCardError, match=r"Rates!D5"):
         load_rates(p)
+
+def test_sf_rates_are_demo_only_and_ordered(tmp_path):
+    p = tmp_path/"rc.xlsx"; create_rate_card(p); r = load_rates(p)
+    seq = [r[f"sfrate_{t}"].value for t in ("residential", "masonry", "steel", "concrete", "highrise")]
+    assert seq == sorted(seq) and r["sfrate_masonry"].value == r["mech_demo_sf"].value
+    assert r["sfrate_highrise"].value == r["mech_demo_sf"].value + r["highrise_premium_sf"].value

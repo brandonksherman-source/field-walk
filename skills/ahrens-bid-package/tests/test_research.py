@@ -44,3 +44,30 @@ def test_wells_fargo_building_e_live():
 @pytest.mark.network
 def test_nonsense_address_live():
     assert geocode("zzzz no such place 99999") == []
+
+from bidpkg.research import clipped_area_sf, osm_polygon, stl_parcel_polygon
+
+def test_clipped_area_half_square():
+    sq = square_ring(38.63, -90.21, 30.48)                     # 100 ft square
+    (x0, y0), (x1, _), _, (_, y1), _ = sq
+    left_half = [(x0, y0), ((x0 + x1) / 2, y0), ((x0 + x1) / 2, y1), (x0, y1), (x0, y0)]
+    assert clipped_area_sf([sq], [left_half]) == pytest.approx(5000, rel=0.01)
+
+def test_clipped_area_no_overlap_is_zero():
+    a = square_ring(38.63, -90.21, 30.48); b = square_ring(38.64, -90.21, 30.48)
+    assert clipped_area_sf([a], [b]) == 0
+
+@pytest.mark.network
+def test_wells_fargo_campus_clipped_to_building_e_parcel_live():
+    area = clipped_area_sf(osm_polygon("relation", 19553658), stl_parcel_polygon("10987000010"))
+    assert area == pytest.approx(56749, rel=0.10)
+
+from bidpkg.research import stacked_gross_sf
+
+def test_stacked_gross_nested_tiers_not_double_counted():
+    big = square_ring(38.63, -90.21, 30.48)          # 10,000 SF, 2 floors
+    (x0, y0), (x1, _), _, (_, y1), _ = big
+    small = [(x0, y0), ((x0 + x1) / 2, y0), ((x0 + x1) / 2, y1), (x0, y1), (x0, y0)]   # 5,000 SF inside it, 4 floors
+    g = stacked_gross_sf([([big], 2, 0), ([small], 4, 0)])
+    assert g["gross_sf"] == pytest.approx(10000 * 2 + 5000 * 2, rel=0.01)
+    assert g["footprint_sf"] == pytest.approx(10000, rel=0.01) and g["max_floors"] == 4

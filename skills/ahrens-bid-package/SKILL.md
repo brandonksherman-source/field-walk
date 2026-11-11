@@ -28,12 +28,11 @@ pip install -q -r requirements.txt   # openpyxl, python-docx, Pillow, pytest; Li
 python3 -m bidpkg.cli init --root "$W"   # makes the queue folders, a blank Bid Log and a seed rate card
 ```
 
-Then replace the seed files with the live ones from Drive (folder `Ahrens Bids`, id `1RIvEGZ9HRwJKu62BBZOJjzqUD0irkW2t`):
-- `Ahrens Rate Card.xlsx`: id `19RfpGKdqsHMhqd09WvS8KBYsfhQ1awLz`
-- `Bid Log.xlsx`: id `1sM5va1DRM700xr186fZhAA5CN4k1ZyAi`
-
-Use `Google_Drive.download_file_content(fileId)`, then decode the returned base64 into `$W/<name>` with Python. If the
-IDs stop working, find the files by title with `Google_Drive.search_files`.
+Then replace the seed files with the live ones from Drive folder `Ahrens Bids` (id `1RIvEGZ9HRwJKu62BBZOJjzqUD0irkW2t`).
+Their file ids change whenever they're replaced, so always find them by title:
+`Google_Drive.search_files("parentId = '1RIvEGZ9HRwJKu62BBZOJjzqUD0irkW2t' and title = 'Ahrens Rate Card.xlsx'")`
+(same for `Bid Log.xlsx`). Note each file's `id` and `modifiedTime`. Download with
+`Google_Drive.download_file_content(fileId)` and decode the returned base64 into `$W/<name>` with Python.
 
 ## 1. Intake
 
@@ -119,7 +118,11 @@ Google_Drive.create_file(title="<file name>", parentId=<job folder id>,
   base64Content="sha256:<sha256sum of the file>:<absolute path>")
 ```
 
-Replace `Bid Log.xlsx` in `Ahrens Bids` with the updated copy (`Google_Drive.update_file`).
+Replace `Bid Log.xlsx` in `Ahrens Bids` with the updated copy. The connector can't overwrite file contents, so:
+look the old file up again; **if its `modifiedTime` changed since you downloaded it, someone edited it: do not
+replace it.** Upload yours as `Bid Log (needs merge).xlsx` and tell Brandon. Otherwise upload the new copy to
+`Ahrens Bids` and then `Google_Drive.trash_file` the old one (it stays in Trash for 30 days). Same rule for the rate
+card after calibration.
 
 ## 7. Reply
 
